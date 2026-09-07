@@ -1,0 +1,40 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: event-service-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: event_service_db
+      MYSQL_USER: group8
+      MYSQL_PASSWORD: group8
+    ports:
+      - "3307:3306"
+    volumes:
+      - event-service-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  event-service:
+    build:
+      context: .
+    container_name: event-service
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:mysql://mysql:3306/event_service_db
+      DB_USERNAME: group8
+      DB_PASSWORD: group8
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-min-32-chars}
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+
+volumes:
+  event-service-mysql-data:
