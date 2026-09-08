@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Event Service CI/CD
 
 on:
   push:
@@ -14,24 +14,67 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+
+        env:
+          MYSQL_DATABASE: event_service_db
+          MYSQL_USER: group8
+          MYSQL_PASSWORD: group8
+          MYSQL_ROOT_PASSWORD: root
+
+        ports:
+          - 3306:3306
+
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_URL: jdbc:mysql://127.0.0.1:3306/event_service_db
+      DB_USERNAME: group8
+      DB_PASSWORD: group8
+
+      JWT_SECRET: ci-test-secret-key-that-is-only-used-for-github-actions
+
+      GROUP5_MOCK: true
+      GROUP6_MOCK: true
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
         with:
-          node-version: 22
-          cache: npm
+          distribution: temurin
+          java-version: "17"
+          cache: maven
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Show Java and Maven versions
+        run: |
+          java -version
+          mvn -version
 
-      - name: Run tests if available
-        run: npm test --if-present
+      - name: Build and test application
+        run: mvn -B clean verify
 
-      - name: Run lint if available
-        run: npm run lint --if-present
+      - name: Verify Docker build
+        if: ${{ hashFiles('Dockerfile') != '' }}
+        run: docker build -t event-service:test .
 
-      - name: Build if available
-        run: npm run build --if-present
+  deploy:
+    name: Deploy to Render
+
+    needs: ci
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Render deployment
+        run: curl -f "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
