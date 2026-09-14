@@ -60,4 +60,4 @@ Schema is managed exclusively via Flyway migrations in `src/main/resources/db/mi
 - [x] JWT authentication + role-based authorization
 - [x] Group 5 / Group 6 mock clients
 - [x] Event CRUD
-- [ ] Registration flow
+- [x] Registration flow
