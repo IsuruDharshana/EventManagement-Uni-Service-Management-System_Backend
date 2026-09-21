@@ -1,23 +1,18 @@
 package com.group8.eventservice;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
-import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * Lightweight context-wiring smoke test. Excludes datasource/JPA/Flyway
- * autoconfiguration so it doesn't need a live database — schema and entity
- * correctness against a real MySQL is covered separately (see repository
- * package tests / manual docker compose verification in the README).
+ * Full context-wiring smoke test. Requires a live MySQL reachable at the properties below —
+ * run `docker compose up -d mysql` first (see README). Testcontainers would normally provide
+ * this automatically, but this project's Docker Desktop has a docker-java/API incompatibility
+ * that breaks it locally (works fine in CI on Linux runners); this is the pragmatic workaround.
  */
-@SpringBootTest
-@ImportAutoConfiguration(exclude = {
-		DataSourceAutoConfiguration.class,
-		HibernateJpaAutoConfiguration.class,
-		FlywayAutoConfiguration.class
+@SpringBootTest(properties = {
+		"spring.datasource.url=jdbc:mysql://localhost:3307/event_service_db",
+		"spring.datasource.username=group8",
+		"spring.datasource.password=group8"
 })
 class EventServiceApplicationTests {
 
