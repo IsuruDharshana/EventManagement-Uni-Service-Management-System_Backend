@@ -69,3 +69,14 @@ Schema is managed exclusively via Flyway migrations in `src/main/resources/db/mi
 - [x] Group 5 / Group 6 mock clients
 - [x] Event CRUD
 - [x] Registration flow
+
+## API testing (Postman)
+
+Import `docs/event-service.postman_collection.json`. It has 35 requests covering every endpoint and every error code, with assertions on each.
+
+1. Start the app with `SPRING_PROFILES_ACTIVE=dev` (this enables the temporary `/api/dev/token` endpoint that mints test JWTs).
+2. Run the collection in order — folder 0 mints tokens, the rest use them. `baseUrl` defaults to `http://localhost:8081`.
+
+Headless run: `npx newman run docs/event-service.postman_collection.json`
+
+Against a real deployment (no dev endpoint), skip folder 0 and paste a real JWT into the token variables.
