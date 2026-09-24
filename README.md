@@ -14,10 +14,18 @@ Java 17 · Spring Boot 4.0.8 · Maven · MySQL 8 · Spring Data JPA (Hibernate) 
 - Maven 3.9+
 - Docker & Docker Compose
 
-## Run with Docker Compose (service + its own MySQL)
+## Daily development (app in IntelliJ, MySQL in Docker)
 
 ```bash
-docker compose up --build
+docker compose up -d mysql
+```
+
+Then run `EventServiceApplication` from the IDE with `DB_URL=jdbc:mysql://localhost:3307/event_service_db`, `DB_USERNAME=group8`, `DB_PASSWORD=group8`. MySQL restarts automatically with Docker Desktop and keeps its data. The app container is opt-in (compose profile `app`), so it never grabs port 8081 on its own.
+
+## Run everything in Docker (service + its own MySQL)
+
+```bash
+docker compose --profile app up --build
 ```
 
 - App: `http://localhost:8081`
