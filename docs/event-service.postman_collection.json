@@ -300,7 +300,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -345,7 +345,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -388,7 +388,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"2020-01-01T00:00:00\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"2020-01-01T00:00:00\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -431,7 +431,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -470,7 +470,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -1191,7 +1191,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Capacity One\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 1,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Capacity One\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 1,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
