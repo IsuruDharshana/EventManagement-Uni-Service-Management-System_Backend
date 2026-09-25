@@ -93,7 +93,12 @@ public class EventController {
 
     @PatchMapping("/{id}/publish")
     @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN_STAFF')")
-    @Operation(summary = "Publish a draft event", description = "Roles: the owning ORGANIZER or ADMIN_STAFF.")
+    @Operation(summary = "Publish a draft event",
+            description = "Roles: the owning ORGANIZER or ADMIN_STAFF. Physical-venue events are checked with Group 6 first; online events skip the check.")
+    @ApiResponse(responseCode = "409", description = "VENUE_NOT_AVAILABLE: Group 6 reports the venue is taken",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "503", description = "GROUP6_UNAVAILABLE: venue service unreachable, event stays DRAFT",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "200", description = "Event is now PUBLISHED")
     @ApiResponse(responseCode = "400", description = "INVALID_STATE: only DRAFT events can be published",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
