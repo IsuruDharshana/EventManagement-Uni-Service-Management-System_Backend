@@ -105,6 +105,17 @@ class RegistrationServiceTest {
     }
 
     @Test
+    void rejectsRegistrationWhenGroup5DoesNotKnowTheUser() {
+        when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(publishedEvent()));
+        when(group5Client.checkEligibility(userId, eventId)).thenReturn(EligibilityResult.invalidUser());
+
+        assertThatThrownBy(() -> service.register(eventId))
+                .isInstanceOf(ApiException.class)
+                .extracting(ex -> ((ApiException) ex).getCode())
+                .isEqualTo("INVALID_USER");
+    }
+
+    @Test
     void rejectsRegistrationWhenIneligible() {
         when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(publishedEvent()));
         when(group5Client.checkEligibility(userId, eventId)).thenReturn(EligibilityResult.ineligible());

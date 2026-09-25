@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -40,7 +41,13 @@ public class Group5Client {
                     .uri("/api/users/{userId}/eligibility?eventId={eventId}", userId, eventId)
                     .retrieve()
                     .body(Boolean.class);
-            return Boolean.TRUE.equals(eligible) ? EligibilityResult.eligible() : EligibilityResult.ineligible();
+            if (eligible == null) {
+                log.warn("Group 5 returned an empty eligibility response for user {}", userId);
+                return EligibilityResult.unavailable();
+            }
+            return eligible ? EligibilityResult.eligible() : EligibilityResult.ineligible();
+        } catch (HttpClientErrorException.NotFound ex) {
+            return EligibilityResult.invalidUser();
         } catch (RestClientException ex) {
             log.warn("Group 5 eligibility check unavailable for user {} event {}: {}", userId, eventId, ex.getMessage());
             return EligibilityResult.unavailable();
