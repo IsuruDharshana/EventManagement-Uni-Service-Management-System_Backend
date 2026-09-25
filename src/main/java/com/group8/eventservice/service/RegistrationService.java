@@ -53,6 +53,9 @@ public class RegistrationService {
             throw new ApiException("GROUP5_UNAVAILABLE",
                     "Eligibility check is temporarily unavailable. Please try again shortly.", HttpStatus.SERVICE_UNAVAILABLE);
         }
+        if (eligibility.status() == EligibilityResult.Status.INVALID_USER) {
+            throw new ApiException("INVALID_USER", "Your account could not be verified.", HttpStatus.FORBIDDEN);
+        }
         if (!eligibility.isEligible()) {
             throw new ApiException("NOT_ELIGIBLE", "You are not eligible to register for this event.", HttpStatus.FORBIDDEN);
         }

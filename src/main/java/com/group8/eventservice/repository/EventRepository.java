@@ -9,10 +9,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.group8.eventservice.entity.Event;
+import com.group8.eventservice.entity.EventStatus;
 
 import jakarta.persistence.LockModeType;
 
 public interface EventRepository extends JpaRepository<Event, UUID> {
+
+    long countByStatus(EventStatus status);
 
     /**
      * Locks the event row for the duration of the transaction, serializing concurrent

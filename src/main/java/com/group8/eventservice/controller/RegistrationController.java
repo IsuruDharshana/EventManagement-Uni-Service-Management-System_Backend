@@ -39,7 +39,7 @@ public class RegistrationController {
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
-    @ApiResponse(responseCode = "403", description = "NOT_ELIGIBLE: Group 5 says the caller is not eligible",
+    @ApiResponse(responseCode = "403", description = "NOT_ELIGIBLE: Group 5 says the caller is not eligible, or INVALID_USER: Group 5 does not know the caller",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "404", description = "NOT_FOUND: event does not exist",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))

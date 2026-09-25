@@ -300,7 +300,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -345,7 +345,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -388,7 +388,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"2020-01-01T00:00:00\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"2020-01-01T00:00:00\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -431,7 +431,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -470,7 +470,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -1191,7 +1191,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Capacity One\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"Main Hall\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 1,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Capacity One\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 1,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -1319,7 +1319,268 @@
       ]
     },
     {
-      "name": "4. Cancel event",
+      "name": "4. Summaries",
+      "item": [
+        {
+          "name": "Event summary as owner (capacity-1 event is full)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{capEventId}}/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{capEventId}}",
+                "registrations"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('1 confirmed, 0 seats left', () => { pm.expect(b.confirmed).to.eql(1); pm.expect(b.capacity).to.eql(1); pm.expect(b.remainingSeats).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Event summary as admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{capEventId}}/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{capEventId}}",
+                "registrations"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Event summary as another organizer -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{otherOrganizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{capEventId}}/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{capEventId}}",
+                "registrations"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('error.code is FORBIDDEN', () => pm.expect(pm.response.json().error.code).to.eql('FORBIDDEN'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Event summary as student -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{capEventId}}/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{capEventId}}",
+                "registrations"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Event summary for unknown event -> 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/00000000-0000-0000-0000-000000000000/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "00000000-0000-0000-0000-000000000000",
+                "registrations"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('error.code is NOT_FOUND', () => pm.expect(pm.response.json().error.code).to.eql('NOT_FOUND'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Overview as admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "summary"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('totals add up', () => pm.expect(b.totalEvents).to.eql(b.draft + b.published + b.cancelled + b.completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Overview as organizer -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "summary"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Cancel event",
       "item": [
         {
           "name": "Admin cancels the event",

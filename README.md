@@ -54,7 +54,9 @@ Defaults (see `application.yml`) connect to `jdbc:mysql://localhost:3306/event_s
 | `JWT_SECRET` | dev default (insecure) | JWT signing key — override in any real deployment |
 | `JWT_EXPIRATION_MS` | `3600000` | Token TTL |
 | `GROUP5_MOCK` / `GROUP6_MOCK` | `true` | Toggle mock mode for the Group 5 (eligibility) / Group 6 (venue) HTTP clients |
-| `GROUP5_BASE_URL` / `GROUP6_BASE_URL` | local placeholders | Real base URLs once those services exist |
+| `GROUP5_BASE_URL` / `GROUP6_BASE_URL` | local placeholders | Real base URLs of those services |
+
+**Group 6 venue check.** When a physical event is published, its `venue` (a Group 6 resource code such as `LAB-101`) is checked with `GET {GROUP6_BASE_URL}/api/resources/code/{code}/validate`. Set `GROUP6_MOCK=false` and `GROUP6_BASE_URL` to use the real service; Group 6 needs no token. Their default port is 8081, the same as this service, so run one of them on another port locally.
 
 ## Database
 
@@ -69,6 +71,10 @@ Schema is managed exclusively via Flyway migrations in `src/main/resources/db/mi
 - [x] Group 5 / Group 6 mock clients
 - [x] Event CRUD
 - [x] Registration flow
+
+## Demo data
+
+Start the app with `SPRING_PROFILES_ACTIVE=dev,seed` to load sample events and registrations (see `docs/data-dictionary.md`). The seed is safe to re-run and is never loaded without the `seed` profile.
 
 ## API testing (Postman)
 

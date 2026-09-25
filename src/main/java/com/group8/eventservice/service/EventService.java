@@ -27,6 +27,7 @@ public class EventService {
     private static final String ORGANIZER = "ORGANIZER";
 
     private final EventRepository eventRepository;
+    private final Group6Client group6Client;
 
     @Transactional
     public EventResponse createEvent(CreateEventRequest request) {
@@ -118,6 +119,8 @@ public class EventService {
             throw new ApiException("INVALID_STATE", "Only draft events can be published.", HttpStatus.BAD_REQUEST);
         }
 
+        requireVenueAvailable(event);
+
         event.setStatus(EventStatus.PUBLISHED);
         return EventResponse.from(eventRepository.saveAndFlush(event));
     }
@@ -134,6 +137,21 @@ public class EventService {
 
         event.setStatus(EventStatus.CANCELLED);
         return EventResponse.from(eventRepository.saveAndFlush(event));
+    }
+
+    private void requireVenueAvailable(Event event) {
+        if (event.isOnline() || event.getVenue() == null || event.getVenue().isBlank()) {
+            return;
+        }
+
+        VenueResult venue = group6Client.validateVenue(event.getVenue().trim());
+        switch (venue.status()) {
+            case VALID -> { }
+            case SERVICE_UNAVAILABLE -> throw new ApiException("GROUP6_UNAVAILABLE",
+                    "Venue check is temporarily unavailable. Please try publishing again shortly.", HttpStatus.SERVICE_UNAVAILABLE);
+            case NOT_FOUND -> throw new ApiException("VENUE_NOT_FOUND", venue.message(), HttpStatus.BAD_REQUEST);
+            case NOT_AVAILABLE -> throw new ApiException("VENUE_NOT_AVAILABLE", venue.message(), HttpStatus.CONFLICT);
+        }
     }
 
     private Event findOrThrow(UUID id) {

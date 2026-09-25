@@ -1,9 +1,13 @@
 package com.group8.eventservice.exception;
 
-/** Standard error envelope for every non-2xx response (Section 3.3 of the backend guide). */
-public record ApiErrorResponse(boolean success, ErrorDetail error) {
+import io.swagger.v3.oas.annotations.media.Schema;
 
-    public record ErrorDetail(String code, String message) {
+/** Standard error envelope for every non-2xx response (Section 3.3 of the backend guide). */
+public record ApiErrorResponse(@Schema(example = "false") boolean success, ErrorDetail error) {
+
+    public record ErrorDetail(
+            @Schema(example = "CAPACITY_REACHED") String code,
+            @Schema(example = "This event has reached its registration capacity.") String message) {
     }
 
     public static ApiErrorResponse of(String code, String message) {

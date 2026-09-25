@@ -5,6 +5,9 @@ spring:
   application:
     name: event-service
 
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/event_service_db}
     username: ${DB_USERNAME:group8}
