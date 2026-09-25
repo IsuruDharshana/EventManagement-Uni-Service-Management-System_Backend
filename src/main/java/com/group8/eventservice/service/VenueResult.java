@@ -1,27 +1,31 @@
 package com.group8.eventservice.service;
 
-/** Outcome of a Group 6 venue-availability check. Never throws — UNAVAILABLE covers any outage/timeout. */
-public record VenueResult(Status status) {
+/** Outcome of a Group 6 venue validation. Never throws — SERVICE_UNAVAILABLE covers any outage/timeout/bad reply. */
+public record VenueResult(Status status, String message) {
 
-    public enum Status { AVAILABLE, OCCUPIED, UNAVAILABLE }
+    public enum Status { VALID, NOT_FOUND, NOT_AVAILABLE, SERVICE_UNAVAILABLE }
 
-    public static VenueResult available() {
-        return new VenueResult(Status.AVAILABLE);
+    public static VenueResult valid() {
+        return new VenueResult(Status.VALID, null);
     }
 
-    public static VenueResult occupied() {
-        return new VenueResult(Status.OCCUPIED);
+    public static VenueResult notFound(String message) {
+        return new VenueResult(Status.NOT_FOUND, message);
     }
 
-    public static VenueResult unavailable() {
-        return new VenueResult(Status.UNAVAILABLE);
+    public static VenueResult notAvailable(String message) {
+        return new VenueResult(Status.NOT_AVAILABLE, message);
     }
 
-    public boolean isAvailable() {
-        return status == Status.AVAILABLE;
+    public static VenueResult serviceUnavailable() {
+        return new VenueResult(Status.SERVICE_UNAVAILABLE, null);
+    }
+
+    public boolean isValid() {
+        return status == Status.VALID;
     }
 
     public boolean isServiceAvailable() {
-        return status != Status.UNAVAILABLE;
+        return status != Status.SERVICE_UNAVAILABLE;
     }
 }

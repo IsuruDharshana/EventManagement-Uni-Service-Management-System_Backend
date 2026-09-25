@@ -42,7 +42,7 @@ erDiagram
 | title | VARCHAR(200) NOT NULL | |
 | description | TEXT | |
 | organizer_id | CHAR(36) NOT NULL | Group 5 user id. Cross-service reference, so no foreign key |
-| venue | VARCHAR(200) | Empty for online events. Checked with Group 6 before publishing physical events |
+| venue | VARCHAR(200) | Group 6 resource code (for example LAB-101). Empty for online events. Validated with Group 6 (`GET /api/resources/code/{code}/validate`) when a physical event is published |
 | is_online | BOOLEAN NOT NULL | default false |
 | schedule_start / schedule_end | DATETIME(6) NOT NULL | end must be after start |
 | capacity | INT NOT NULL | CHECK capacity > 0 |

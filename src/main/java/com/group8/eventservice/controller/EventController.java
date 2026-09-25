@@ -95,7 +95,9 @@ public class EventController {
     @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN_STAFF')")
     @Operation(summary = "Publish a draft event",
             description = "Roles: the owning ORGANIZER or ADMIN_STAFF. Physical-venue events are checked with Group 6 first; online events skip the check.")
-    @ApiResponse(responseCode = "409", description = "VENUE_NOT_AVAILABLE: Group 6 reports the venue is taken",
+    @ApiResponse(responseCode = "400", description = "INVALID_STATE (not a draft) or VENUE_NOT_FOUND: Group 6 does not know the venue code",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "VENUE_NOT_AVAILABLE: Group 6 says the venue cannot be used",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "503", description = "GROUP6_UNAVAILABLE: venue service unreachable, event stays DRAFT",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))

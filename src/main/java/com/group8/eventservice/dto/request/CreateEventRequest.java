@@ -23,7 +23,7 @@ public class CreateEventRequest {
     @Schema(example = "Hands-on workshop for Computing students")
     private String description;
 
-    @Schema(example = "Lab B-204", description = "Leave empty for online events")
+    @Schema(example = "LAB-101", description = "Group 6 resource code of the venue. Checked with Group 6 when a physical event is published. Leave empty for online events")
     @Size(max = 200)
     private String venue;
 

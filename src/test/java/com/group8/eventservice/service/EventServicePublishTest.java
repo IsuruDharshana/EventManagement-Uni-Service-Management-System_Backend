@@ -67,29 +67,47 @@ class EventServicePublishTest {
     }
 
     @Test
-    void publishesPhysicalEventWhenVenueIsAvailable() {
-        draft(false, "Main Hall");
-        when(group6Client.checkAvailability("Main Hall", eventId)).thenReturn(VenueResult.available());
+    void publishesPhysicalEventWhenVenueIsValid() {
+        draft(false, "LAB-101");
+        when(group6Client.validateVenue("LAB-101")).thenReturn(VenueResult.valid());
 
         assertThat(service.publishEvent(eventId).status()).isEqualTo(EventStatus.PUBLISHED);
     }
 
     @Test
-    void rejectsPublishWhenVenueIsOccupied() {
-        Event event = draft(false, "Main Hall");
-        when(group6Client.checkAvailability("Main Hall", eventId)).thenReturn(VenueResult.occupied());
+    void rejectsPublishWhenVenueIsNotAvailableAndShowsGroup6Message() {
+        Event event = draft(false, "LAB-101");
+        when(group6Client.validateVenue("LAB-101"))
+                .thenReturn(VenueResult.notAvailable("Resource is currently marked unavailable"));
 
         assertThatThrownBy(() -> service.publishEvent(eventId))
                 .isInstanceOf(ApiException.class)
-                .extracting(ex -> ((ApiException) ex).getCode())
-                .isEqualTo("VENUE_NOT_AVAILABLE");
+                .satisfies(ex -> {
+                    assertThat(((ApiException) ex).getCode()).isEqualTo("VENUE_NOT_AVAILABLE");
+                    assertThat(ex.getMessage()).isEqualTo("Resource is currently marked unavailable");
+                });
+        assertThat(event.getStatus()).isEqualTo(EventStatus.DRAFT);
+    }
+
+    @Test
+    void rejectsPublishWhenVenueDoesNotExistAndShowsGroup6Message() {
+        Event event = draft(false, "LAB-999");
+        when(group6Client.validateVenue("LAB-999"))
+                .thenReturn(VenueResult.notFound("Resource with ID 999 does not exist"));
+
+        assertThatThrownBy(() -> service.publishEvent(eventId))
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> {
+                    assertThat(((ApiException) ex).getCode()).isEqualTo("VENUE_NOT_FOUND");
+                    assertThat(ex.getMessage()).isEqualTo("Resource with ID 999 does not exist");
+                });
         assertThat(event.getStatus()).isEqualTo(EventStatus.DRAFT);
     }
 
     @Test
     void rejectsPublishWhenGroup6IsUnavailableAndLeavesEventInDraft() {
-        Event event = draft(false, "Main Hall");
-        when(group6Client.checkAvailability("Main Hall", eventId)).thenReturn(VenueResult.unavailable());
+        Event event = draft(false, "LAB-101");
+        when(group6Client.validateVenue("LAB-101")).thenReturn(VenueResult.serviceUnavailable());
 
         assertThatThrownBy(() -> service.publishEvent(eventId))
                 .isInstanceOf(ApiException.class)
@@ -104,6 +122,6 @@ class EventServicePublishTest {
         draft(true, null);
 
         assertThat(service.publishEvent(eventId).status()).isEqualTo(EventStatus.PUBLISHED);
-        verify(group6Client, never()).checkAvailability(anyString(), any());
+        verify(group6Client, never()).validateVenue(anyString());
     }
 }

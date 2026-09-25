@@ -144,14 +144,13 @@ public class EventService {
             return;
         }
 
-        VenueResult venue = group6Client.checkAvailability(event.getVenue(), event.getId());
-        if (!venue.isServiceAvailable()) {
-            throw new ApiException("GROUP6_UNAVAILABLE",
+        VenueResult venue = group6Client.validateVenue(event.getVenue().trim());
+        switch (venue.status()) {
+            case VALID -> { }
+            case SERVICE_UNAVAILABLE -> throw new ApiException("GROUP6_UNAVAILABLE",
                     "Venue check is temporarily unavailable. Please try publishing again shortly.", HttpStatus.SERVICE_UNAVAILABLE);
-        }
-        if (!venue.isAvailable()) {
-            throw new ApiException("VENUE_NOT_AVAILABLE",
-                    "The venue is not available for this event.", HttpStatus.CONFLICT);
+            case NOT_FOUND -> throw new ApiException("VENUE_NOT_FOUND", venue.message(), HttpStatus.BAD_REQUEST);
+            case NOT_AVAILABLE -> throw new ApiException("VENUE_NOT_AVAILABLE", venue.message(), HttpStatus.CONFLICT);
         }
     }
 
