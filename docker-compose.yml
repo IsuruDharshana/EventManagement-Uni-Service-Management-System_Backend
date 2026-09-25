@@ -22,7 +22,7 @@ services:
     build:
       context: .
     container_name: event-service
-    restart: unless-stopped
+    profiles: ["app"]
     depends_on:
       mysql:
         condition: service_healthy

@@ -10,9 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
  * that breaks it locally (works fine in CI on Linux runners); this is the pragmatic workaround.
  */
 @SpringBootTest(properties = {
-		"spring.datasource.url=jdbc:mysql://localhost:3307/event_service_db",
-		"spring.datasource.username=group8",
-		"spring.datasource.password=group8"
+		"spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3307/event_service_db}",
+		"spring.datasource.username=${DB_USERNAME:group8}",
+		"spring.datasource.password=${DB_PASSWORD:group8}"
 })
 class EventServiceApplicationTests {
 

@@ -14,10 +14,18 @@ Java 17 · Spring Boot 4.0.8 · Maven · MySQL 8 · Spring Data JPA (Hibernate) 
 - Maven 3.9+
 - Docker & Docker Compose
 
-## Run with Docker Compose (service + its own MySQL)
+## Daily development (app in IntelliJ, MySQL in Docker)
 
 ```bash
-docker compose up --build
+docker compose up -d mysql
+```
+
+Then run `EventServiceApplication` from the IDE with `DB_URL=jdbc:mysql://localhost:3307/event_service_db`, `DB_USERNAME=group8`, `DB_PASSWORD=group8`. MySQL restarts automatically with Docker Desktop and keeps its data. The app container is opt-in (compose profile `app`), so it never grabs port 8081 on its own.
+
+## Run everything in Docker (service + its own MySQL)
+
+```bash
+docker compose --profile app up --build
 ```
 
 - App: `http://localhost:8081`
@@ -61,3 +69,14 @@ Schema is managed exclusively via Flyway migrations in `src/main/resources/db/mi
 - [x] Group 5 / Group 6 mock clients
 - [x] Event CRUD
 - [x] Registration flow
+
+## API testing (Postman)
+
+Import `docs/event-service.postman_collection.json`. It has 35 requests covering every endpoint and every error code, with assertions on each.
+
+1. Start the app with `SPRING_PROFILES_ACTIVE=dev` (this enables the temporary `/api/dev/token` endpoint that mints test JWTs).
+2. Run the collection in order — folder 0 mints tokens, the rest use them. `baseUrl` defaults to `http://localhost:8081`.
+
+Headless run: `npx newman run docs/event-service.postman_collection.json`
+
+Against a real deployment (no dev endpoint), skip folder 0 and paste a real JWT into the token variables.
