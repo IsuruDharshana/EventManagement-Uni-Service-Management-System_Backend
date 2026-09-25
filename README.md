@@ -70,6 +70,10 @@ Schema is managed exclusively via Flyway migrations in `src/main/resources/db/mi
 - [x] Event CRUD
 - [x] Registration flow
 
+## Demo data
+
+Start the app with `SPRING_PROFILES_ACTIVE=dev,seed` to load sample events and registrations (see `docs/data-dictionary.md`). The seed is safe to re-run and is never loaded without the `seed` profile.
+
 ## API testing (Postman)
 
 Import `docs/event-service.postman_collection.json`. It has 35 requests covering every endpoint and every error code, with assertions on each.
