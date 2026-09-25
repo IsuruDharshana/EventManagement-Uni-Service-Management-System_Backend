@@ -9,4 +9,6 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8081
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=5 \
+  CMD wget -q -O /dev/null http://localhost:${PORT:-${SERVER_PORT:-8081}}/actuator/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]
