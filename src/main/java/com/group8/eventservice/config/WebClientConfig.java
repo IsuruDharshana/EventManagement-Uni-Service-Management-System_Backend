@@ -5,7 +5,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
-/** Shared RestClient.Builder with conservative timeouts for cross-service calls (Group 5/6/7). */
+/**
+ * Shared RestClient.Builder for cross-service calls (Group 5/6, notifications): conservative
+ * timeouts, and the current X-Request-ID forwarded on every call.
+ */
 @Configuration
 public class WebClientConfig {
 
@@ -14,6 +17,8 @@ public class WebClientConfig {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(3_000);
         factory.setReadTimeout(5_000);
-        return RestClient.builder().requestFactory(factory);
+        return RestClient.builder()
+                .requestFactory(factory)
+                .requestInterceptor(RequestIdPropagation.outgoingRequestId());
     }
 }
