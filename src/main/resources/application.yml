@@ -56,6 +56,9 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+  # Stable, typed contract: JSON responses and key-sorted output so docs/event-service-openapi.json diffs cleanly.
+  default-produces-media-type: application/json
+  writer-with-order-by-keys: true
 
 # Access tokens are issued by Group 5 (Identity Service): RS256, checked against Group 5's public keys.
 jwt:

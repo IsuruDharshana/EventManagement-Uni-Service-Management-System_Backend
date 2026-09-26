@@ -33,6 +33,8 @@ public class SummaryController {
     @Operation(summary = "Registration and capacity summary for one event",
             description = "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN / ADMINISTRATIVE_STAFF.")
     @ApiResponse(responseCode = "200", description = "Confirmed and cancelled counts and remaining seats")
+    @ApiResponse(responseCode = "400", description = "INVALID_PARAMETER: eventId is not a UUID",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "403", description = "FORBIDDEN: caller does not own the event",

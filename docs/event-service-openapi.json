@@ -1,0 +1,1382 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Group 8 event management: events, registrations, capacity and participation summaries.\n\n**Authentication.** Every endpoint needs `Authorization: Bearer <token>` with a Group 5 (Identity Service) access token. Roles come from the token's `roles` claim: EVENT_ORGANIZER, ACADEMIC_STAFF, ADMIN, ADMINISTRATIVE_STAFF, STUDENT.\n\n**Errors.** Every error has the shape `{ \"success\": false, \"error\": { \"code\", \"message\" } }`. Branch on `error.code`; `error.message` is safe to show to users.\n\n| Code | HTTP | Meaning |\n|---|---|---|\n| VALIDATION_ERROR | 400 | Missing or invalid field, or bad filter / paging values |\n| INVALID_PARAMETER | 400 | Path or query value of the wrong type (e.g. id is not a UUID, unknown status) |\n| MALFORMED_REQUEST | 400 | Request body missing or not valid JSON |\n| INVALID_SCHEDULE | 400 | Dates do not fit together after an update |\n| INVALID_ELIGIBILITY_RULE | 400 | eligibilityRule is not in the supported format |\n| INVALID_STATE | 400 | Action not allowed in the current status |\n| EVENT_NOT_PUBLISHED / REGISTRATION_CLOSED | 400 | Registration not open |\n| CANCELLATION_CLOSED / EVENT_NOT_STARTED | 400 | Too late to cancel / too early to complete |\n| VENUE_NOT_FOUND | 400 | Group 6 does not know the venue code |\n| UNAUTHORIZED | 401 | Missing, invalid or expired token |\n| FORBIDDEN / NOT_VISIBLE | 403 | Role or ownership does not allow this |\n| NOT_ELIGIBLE / INVALID_USER | 403 | Group 5 rejected the registration |\n| NOT_FOUND | 404 | Event or registration does not exist |\n| METHOD_NOT_ALLOWED | 405 | Wrong HTTP method |\n| CAPACITY_REACHED / ALREADY_REGISTERED | 409 | Registration conflict |\n| VENUE_NOT_AVAILABLE | 409 | Group 6 says the venue cannot be used |\n| INTERNAL_ERROR | 500 | Unexpected error (no internal details) |\n| GROUP5_UNAVAILABLE / GROUP6_UNAVAILABLE | 503 | Dependency down; nothing was changed, retry later |\n\n**Tracing.** Every response has an `X-Request-ID` header. Send your own (e.g. from the API Gateway) to follow one action across services.\n",
+    "title" : "Event Service API",
+    "version" : "1.0"
+  },
+  "security" : [ {
+    "bearerAuth" : [ ]
+  } ],
+  "tags" : [ {
+    "description" : "Register for events, cancel, and view your registrations",
+    "name" : "Registrations"
+  }, {
+    "description" : "Participation numbers for organizers and administrators",
+    "name" : "Summaries"
+  }, {
+    "description" : "Create, edit, publish, cancel and view events",
+    "name" : "Events"
+  } ],
+  "paths" : {
+    "/api/events" : {
+      "get" : {
+        "description" : "Everyone sees PUBLISHED events. Organizers also see their own non-published events. ADMIN and ADMINISTRATIVE_STAFF see all. All filters are optional and combine with AND; results are ordered by start time. Without page/size the whole filtered list is returned. X-Total-Count always holds the number of matching events.",
+        "operationId" : "listEvents",
+        "parameters" : [ {
+          "description" : "Only events with this status",
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "DRAFT", "PUBLISHED", "CANCELLED", "COMPLETED" ]
+          }
+        }, {
+          "description" : "Only events starting at or after this time",
+          "example" : "2026-10-01T00:00:00",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "description" : "Only events starting at or before this time",
+          "example" : "2026-10-31T23:59:59",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "description" : "Only events that have not started yet",
+          "in" : "query",
+          "name" : "upcoming",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "description" : "Only events the caller organizes",
+          "in" : "query",
+          "name" : "mine",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "description" : "Page number, from 0",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "description" : "Page size, 1 to 100 (default 20 when page is given)",
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Visible events",
+            "headers" : {
+              "X-Total-Count" : {
+                "description" : "Number of events matching the filters (all pages)",
+                "schema" : {
+                  "type" : "integer",
+                  "format" : "int64"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INVALID_PARAMETER (unknown status or badly formatted date) or VALIDATION_ERROR (to before from, or page/size out of range)"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "List events visible to the caller",
+        "tags" : [ "Events" ]
+      },
+      "post" : {
+        "description" : "Roles: EVENT_ORGANIZER, ACADEMIC_STAFF, ADMIN. The caller becomes the event's organizer. eligibilityRule is {\"all\": true} or Group 5 criteria such as {\"roles\": [\"STUDENT\"], \"departmentId\": \"dep-cs\"}.",
+        "operationId" : "createEvent",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateEventRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventResponse"
+                }
+              }
+            },
+            "description" : "Event created in DRAFT status"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR: invalid or missing fields, scheduleEnd not after scheduleStart, or registrationCloseAt after scheduleStart. INVALID_ELIGIBILITY_RULE: eligibilityRule is not in the supported format. MALFORMED_REQUEST: body is not valid JSON"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED: missing, invalid or expired token"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "FORBIDDEN: caller is not EVENT_ORGANIZER, ACADEMIC_STAFF or ADMIN"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "Create a draft event",
+        "tags" : [ "Events" ]
+      }
+    },
+    "/api/events/summary" : {
+      "get" : {
+        "description" : "Roles: ADMIN, ADMINISTRATIVE_STAFF.",
+        "operationId" : "overview",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventsOverview"
+                }
+              }
+            },
+            "description" : "Totals by event status and registration status"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "FORBIDDEN: caller is not ADMIN or ADMINISTRATIVE_STAFF"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "Overall event and registration totals",
+        "tags" : [ "Summaries" ]
+      }
+    },
+    "/api/events/{eventId}/registrations" : {
+      "get" : {
+        "description" : "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN / ADMINISTRATIVE_STAFF.",
+        "operationId" : "eventSummary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "eventId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventRegistrationSummary"
+                }
+              }
+            },
+            "description" : "Confirmed and cancelled counts and remaining seats"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INVALID_PARAMETER: eventId is not a UUID"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "FORBIDDEN: caller does not own the event"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "Registration and capacity summary for one event",
+        "tags" : [ "Summaries" ]
+      },
+      "post" : {
+        "description" : "Any signed-in user. Checks, in order: event is PUBLISHED, registration window is open, Group 5 eligibility (skipped for {\"all\": true} events), capacity.",
+        "operationId" : "register",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "eventId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RegistrationResponse"
+                }
+              }
+            },
+            "description" : "Registration CONFIRMED"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "EVENT_NOT_PUBLISHED, REGISTRATION_CLOSED or INVALID_PARAMETER (eventId is not a UUID)"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_ELIGIBLE: Group 5 says the caller does not meet the event's eligibility rule (message explains why), or INVALID_USER: Group 5 does not know the caller or the account is inactive"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND: event does not exist"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "CAPACITY_REACHED or ALREADY_REGISTERED"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "GROUP5_UNAVAILABLE: eligibility service unreachable, nothing was saved"
+          }
+        },
+        "summary" : "Register the caller for an event",
+        "tags" : [ "Registrations" ]
+      }
+    },
+    "/api/events/{id}" : {
+      "get" : {
+        "operationId" : "getEvent",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventResponse"
+                }
+              }
+            },
+            "description" : "Event detail"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INVALID_PARAMETER: id is not a UUID"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_VISIBLE: event is not published and caller is neither its organizer nor ADMIN / ADMINISTRATIVE_STAFF"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "Get event detail",
+        "tags" : [ "Events" ]
+      },
+      "patch" : {
+        "description" : "Only provided fields change. Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN.",
+        "operationId" : "updateEvent",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateEventRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventResponse"
+                }
+              }
+            },
+            "description" : "Updated event"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR, INVALID_SCHEDULE (resulting schedule is inconsistent), INVALID_ELIGIBILITY_RULE, MALFORMED_REQUEST (body is not valid JSON) or INVALID_PARAMETER (id is not a UUID)"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "FORBIDDEN: caller does not own the event"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "Partially update an event",
+        "tags" : [ "Events" ]
+      }
+    },
+    "/api/events/{id}/cancel" : {
+      "patch" : {
+        "description" : "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN.",
+        "operationId" : "cancelEvent",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventResponse"
+                }
+              }
+            },
+            "description" : "Event is now CANCELLED"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INVALID_PARAMETER (id is not a UUID) or INVALID_STATE (event is already cancelled or completed)"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "FORBIDDEN: caller does not own the event"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "Cancel an event",
+        "tags" : [ "Events" ]
+      }
+    },
+    "/api/events/{id}/complete" : {
+      "patch" : {
+        "description" : "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN. For events that finish early: published events are also completed automatically once their end time passes. Feedback is only accepted for COMPLETED events.",
+        "operationId" : "completeEvent",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventResponse"
+                }
+              }
+            },
+            "description" : "Event is now COMPLETED"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INVALID_PARAMETER (id is not a UUID), INVALID_STATE (only PUBLISHED events can be completed) or EVENT_NOT_STARTED"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "FORBIDDEN: caller does not own the event"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "Mark a published event as completed",
+        "tags" : [ "Events" ]
+      }
+    },
+    "/api/events/{id}/publish" : {
+      "patch" : {
+        "description" : "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN. Physical-venue events are checked with Group 6 first; online events skip the check.",
+        "operationId" : "publishEvent",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventResponse"
+                }
+              }
+            },
+            "description" : "Event is now PUBLISHED"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INVALID_PARAMETER (id is not a UUID), INVALID_STATE (only DRAFT events can be published) or VENUE_NOT_FOUND: Group 6 does not know the venue code"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "FORBIDDEN: caller does not own the event"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "VENUE_NOT_AVAILABLE: Group 6 says the venue cannot be used"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "GROUP6_UNAVAILABLE: venue service unreachable, event stays DRAFT"
+          }
+        },
+        "summary" : "Publish a draft event",
+        "tags" : [ "Events" ]
+      }
+    },
+    "/api/registrations/mine" : {
+      "get" : {
+        "operationId" : "myRegistrations",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RegistrationResponse"
+                  }
+                }
+              }
+            },
+            "description" : "Registration history"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "List the caller's registrations, including cancelled ones",
+        "tags" : [ "Registrations" ]
+      }
+    },
+    "/api/registrations/{id}/cancel" : {
+      "patch" : {
+        "description" : "Not allowed once the event has started.",
+        "operationId" : "cancelRegistration",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RegistrationResponse"
+                }
+              }
+            },
+            "description" : "Registration is now CANCELLED"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INVALID_STATE (already cancelled), CANCELLATION_CLOSED (event started) or INVALID_PARAMETER (id is not a UUID)"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHORIZED"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "FORBIDDEN: registration belongs to another user"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "summary" : "Cancel the caller's own registration",
+        "tags" : [ "Registrations" ]
+      }
+    },
+    "/api/test/any-authenticated" : {
+      "get" : {
+        "operationId" : "anyAuthenticated",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "tags" : [ "test-protected-controller" ]
+      }
+    },
+    "/api/test/organizer-only" : {
+      "get" : {
+        "operationId" : "organizerOnly",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description" : "INTERNAL_ERROR: unexpected error, no internal details are returned"
+          }
+        },
+        "tags" : [ "test-protected-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ApiErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "$ref" : "#/components/schemas/ErrorDetail"
+          },
+          "success" : {
+            "type" : "boolean",
+            "example" : false
+          }
+        }
+      },
+      "CreateEventRequest" : {
+        "type" : "object",
+        "properties" : {
+          "capacity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Must be greater than 0",
+            "example" : 30
+          },
+          "description" : {
+            "type" : "string",
+            "example" : "Hands-on workshop for Computing students"
+          },
+          "eligibilityRule" : {
+            "type" : "string",
+            "description" : "JSON rule saying who may register. {\"all\": true} means everyone. Otherwise any of: roles (Group 5 role names, user needs one), departmentId / facultyId (Group 5 directory ids the user must belong to)",
+            "example" : {
+              "roles" : [ "STUDENT" ],
+              "departmentId" : "dep-cs"
+            },
+            "minLength" : 1
+          },
+          "online" : {
+            "type" : "boolean",
+            "example" : false
+          },
+          "registrationCloseAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Must be on or before scheduleStart",
+            "example" : "2026-10-04T18:00:00"
+          },
+          "registrationOpenAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-09-25T08:00:00"
+          },
+          "scheduleEnd" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Must be after scheduleStart",
+            "example" : "2026-10-05T13:00:00"
+          },
+          "scheduleStart" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-05T10:00:00"
+          },
+          "title" : {
+            "type" : "string",
+            "example" : "Innovation Week Workshop",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "venue" : {
+            "type" : "string",
+            "description" : "Group 6 resource code of the venue. Checked with Group 6 when a physical event is published. Leave empty for online events",
+            "example" : "LAB-101",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "capacity", "eligibilityRule", "registrationCloseAt", "registrationOpenAt", "scheduleEnd", "scheduleStart", "title" ]
+      },
+      "ErrorDetail" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "example" : "CAPACITY_REACHED"
+          },
+          "message" : {
+            "type" : "string",
+            "example" : "This event has reached its registration capacity."
+          }
+        }
+      },
+      "EventRegistrationSummary" : {
+        "type" : "object",
+        "properties" : {
+          "cancelled" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 3
+          },
+          "capacity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 30
+          },
+          "confirmed" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Registrations that hold a seat",
+            "example" : 12
+          },
+          "eventId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "example" : "a0000000-0000-0000-0000-000000000001"
+          },
+          "remainingSeats" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "capacity - confirmed, never below 0",
+            "example" : 18
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "DRAFT", "PUBLISHED", "CANCELLED", "COMPLETED" ]
+          },
+          "title" : {
+            "type" : "string",
+            "example" : "Innovation Week Workshop"
+          }
+        }
+      },
+      "EventResponse" : {
+        "type" : "object",
+        "properties" : {
+          "capacity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 30
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "description" : {
+            "type" : "string",
+            "example" : "Hands-on workshop for Computing students"
+          },
+          "eligibilityRule" : {
+            "type" : "string",
+            "description" : "JSON rule as a string, e.g. {\"all\": true} or {\"roles\": [\"STUDENT\"], \"departmentId\": \"dep-cs\"}",
+            "example" : {
+              "roles" : [ "STUDENT" ],
+              "departmentId" : "dep-cs"
+            }
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid",
+            "example" : "a0000000-0000-0000-0000-000000000001"
+          },
+          "online" : {
+            "type" : "boolean",
+            "example" : false
+          },
+          "organizerId" : {
+            "type" : "string",
+            "description" : "Group 5 user id of the organizer",
+            "example" : "usr-organizer-001"
+          },
+          "registrationCloseAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-04T18:00:00"
+          },
+          "registrationOpenAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-09-25T08:00:00"
+          },
+          "scheduleEnd" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-05T13:00:00"
+          },
+          "scheduleStart" : {
+            "type" : "string",
+            "format" : "date-time",
+            "example" : "2026-10-05T10:00:00"
+          },
+          "status" : {
+            "type" : "string",
+            "description" : "DRAFT -> PUBLISHED -> COMPLETED, or CANCELLED from DRAFT/PUBLISHED",
+            "enum" : [ "DRAFT", "PUBLISHED", "CANCELLED", "COMPLETED" ]
+          },
+          "title" : {
+            "type" : "string",
+            "example" : "Innovation Week Workshop"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "venue" : {
+            "type" : "string",
+            "description" : "Group 6 resource code; null for online events",
+            "example" : "LAB-101"
+          }
+        }
+      },
+      "EventsOverview" : {
+        "type" : "object",
+        "properties" : {
+          "cancelled" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1
+          },
+          "cancelledRegistrations" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 5
+          },
+          "completed" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 2
+          },
+          "confirmedRegistrations" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 40
+          },
+          "draft" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 1
+          },
+          "published" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 3
+          },
+          "totalEvents" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "draft + published + cancelled + completed",
+            "example" : 7
+          }
+        }
+      },
+      "RegistrationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "eventId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "example" : "a0000000-0000-0000-0000-000000000001"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid",
+            "example" : "b0000000-0000-0000-0000-000000000001"
+          },
+          "status" : {
+            "type" : "string",
+            "description" : "CONFIRMED counts toward capacity; CANCELLED by the user; WAITLISTED is reserved and not used yet",
+            "enum" : [ "CONFIRMED", "CANCELLED", "WAITLISTED" ]
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "userId" : {
+            "type" : "string",
+            "description" : "Group 5 user id of the registered user",
+            "example" : "usr-student-001"
+          }
+        }
+      },
+      "UpdateEventRequest" : {
+        "type" : "object",
+        "description" : "Partial update: send only the fields to change; missing or null fields stay as they are. Same rules as create (dates must fit together, eligibilityRule in the supported format).",
+        "properties" : {
+          "capacity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "eligibilityRule" : {
+            "type" : "string"
+          },
+          "online" : {
+            "type" : "boolean"
+          },
+          "registrationCloseAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "registrationOpenAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "scheduleEnd" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "scheduleStart" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "venue" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "bearerFormat" : "JWT",
+        "scheme" : "bearer",
+        "type" : "http"
+      }
+    }
+  }
+}

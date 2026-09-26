@@ -27,6 +27,7 @@ import com.group8.eventservice.service.EventService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -52,7 +53,7 @@ public class EventController {
                     + "eligibilityRule is {\"all\": true} or Group 5 criteria such as {\"roles\": [\"STUDENT\"], \"departmentId\": \"dep-cs\"}.")
     @ApiResponse(responseCode = "201", description = "Event created in DRAFT status")
     @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: invalid or missing fields, scheduleEnd not after scheduleStart, or registrationCloseAt after scheduleStart. "
-            + "INVALID_ELIGIBILITY_RULE: eligibilityRule is not in the supported format",
+            + "INVALID_ELIGIBILITY_RULE: eligibilityRule is not in the supported format. MALFORMED_REQUEST: body is not valid JSON",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: missing, invalid or expired token",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
@@ -68,8 +69,11 @@ public class EventController {
                     + "ADMIN and ADMINISTRATIVE_STAFF see all. All filters are optional and combine with AND; results are "
                     + "ordered by start time. Without page/size the whole filtered list is returned. "
                     + "X-Total-Count always holds the number of matching events.")
-    @ApiResponse(responseCode = "200", description = "Visible events (header X-Total-Count = total matches)")
-    @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: unknown status, bad date, to before from, or page/size out of range",
+    @ApiResponse(responseCode = "200", description = "Visible events",
+            headers = @Header(name = TOTAL_COUNT, description = "Number of events matching the filters (all pages)",
+                    schema = @Schema(implementation = Long.class, example = "57")))
+    @ApiResponse(responseCode = "400", description = "INVALID_PARAMETER (unknown status or badly formatted date) or "
+            + "VALIDATION_ERROR (to before from, or page/size out of range)",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
@@ -93,6 +97,8 @@ public class EventController {
     @GetMapping("/{id}")
     @Operation(summary = "Get event detail")
     @ApiResponse(responseCode = "200", description = "Event detail")
+    @ApiResponse(responseCode = "400", description = "INVALID_PARAMETER: id is not a UUID",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "403", description = "NOT_VISIBLE: event is not published and caller is neither its organizer nor ADMIN / ADMINISTRATIVE_STAFF",
@@ -107,7 +113,8 @@ public class EventController {
     @PreAuthorize(MANAGE_ROLES)
     @Operation(summary = "Partially update an event", description = "Only provided fields change. Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN.")
     @ApiResponse(responseCode = "200", description = "Updated event")
-    @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR, INVALID_SCHEDULE (resulting schedule is inconsistent) or INVALID_ELIGIBILITY_RULE",
+    @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR, INVALID_SCHEDULE (resulting schedule is inconsistent), INVALID_ELIGIBILITY_RULE, "
+            + "MALFORMED_REQUEST (body is not valid JSON) or INVALID_PARAMETER (id is not a UUID)",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
@@ -123,7 +130,7 @@ public class EventController {
     @PreAuthorize(MANAGE_ROLES)
     @Operation(summary = "Publish a draft event",
             description = "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN. Physical-venue events are checked with Group 6 first; online events skip the check.")
-    @ApiResponse(responseCode = "400", description = "INVALID_STATE (only DRAFT events can be published) or VENUE_NOT_FOUND: Group 6 does not know the venue code",
+    @ApiResponse(responseCode = "400", description = "INVALID_PARAMETER (id is not a UUID), INVALID_STATE (only DRAFT events can be published) or VENUE_NOT_FOUND: Group 6 does not know the venue code",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "409", description = "VENUE_NOT_AVAILABLE: Group 6 says the venue cannot be used",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
@@ -144,7 +151,7 @@ public class EventController {
     @PreAuthorize(MANAGE_ROLES)
     @Operation(summary = "Cancel an event", description = "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN.")
     @ApiResponse(responseCode = "200", description = "Event is now CANCELLED")
-    @ApiResponse(responseCode = "400", description = "INVALID_STATE: event is already cancelled or completed",
+    @ApiResponse(responseCode = "400", description = "INVALID_PARAMETER (id is not a UUID) or INVALID_STATE (event is already cancelled or completed)",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
@@ -162,7 +169,7 @@ public class EventController {
             description = "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN. For events that finish early: "
                     + "published events are also completed automatically once their end time passes. Feedback is only accepted for COMPLETED events.")
     @ApiResponse(responseCode = "200", description = "Event is now COMPLETED")
-    @ApiResponse(responseCode = "400", description = "INVALID_STATE (only PUBLISHED events can be completed) or EVENT_NOT_STARTED",
+    @ApiResponse(responseCode = "400", description = "INVALID_PARAMETER (id is not a UUID), INVALID_STATE (only PUBLISHED events can be completed) or EVENT_NOT_STARTED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))

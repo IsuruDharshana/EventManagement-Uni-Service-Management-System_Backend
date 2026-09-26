@@ -4,12 +4,14 @@ import java.util.UUID;
 
 import com.group8.eventservice.entity.EventStatus;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 public record EventRegistrationSummary(
-        UUID eventId,
-        String title,
+        @Schema(example = "a0000000-0000-0000-0000-000000000001") UUID eventId,
+        @Schema(example = "Innovation Week Workshop") String title,
         EventStatus status,
-        int capacity,
-        long confirmed,
-        long cancelled,
-        long remainingSeats) {
+        @Schema(example = "30") int capacity,
+        @Schema(description = "Registrations that hold a seat", example = "12") long confirmed,
+        @Schema(example = "3") long cancelled,
+        @Schema(description = "capacity - confirmed, never below 0", example = "18") long remainingSeats) {
 }
