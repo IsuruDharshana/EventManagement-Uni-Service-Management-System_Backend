@@ -1,112 +1,207 @@
 # event-service
 
-Group 8 — Events, Communications & Feedback. Owns event creation, publishing, and registration. Part of a multi-repo backend (see `communication-feedback-service`, a sibling repo, for announcements/notifications/feedback — the two never share a database).
+Group 8 (Events, Communications & Feedback) microservice for the University Services Management Platform. It owns **events, registrations and capacity**: organizers create and publish events, users register and cancel, and organizers and administrators see participation summaries.
+
+It has its own MySQL database that no other service reads. Other services use its REST API. Announcements, notifications and feedback live in the separate `communication-feedback-service`.
+
+## Contents
+
+- [Stack](#stack)
+- [Run it](#run-it)
+- [Configuration](#configuration)
+- [Security and roles](#security-and-roles)
+- [Integrations](#integrations)
+- [API](#api)
+- [Database](#database)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting)
 
 ## Stack
 
-Java 17 · Spring Boot 4.0.8 · Maven · MySQL 8 · Spring Data JPA (Hibernate) · Flyway · Spring Security (Group 5 RS256 JWT) · Bean Validation · springdoc-openapi (Swagger UI)
+Java 17 · Spring Boot 4.0.8 · Maven · MySQL 8 · Spring Data JPA (Hibernate) · Flyway · Spring Security (Group 5 RS256 JWT) · Bean Validation · springdoc-openapi (Swagger UI) · JUnit 5 / Mockito · Docker · GitHub Actions
 
-> Note: Spring Boot 3.x is EOL on Spring Initializr as of this build; 4.0.8 is the closest available match to the original stack recommendation. Layered architecture (controller/service/repository) and every other requirement below are unaffected.
+Layered as controller → service → repository, with request/response DTOs. Spring Boot 4.0.8 is used because 3.x is no longer offered by Spring Initializr.
 
-## Prerequisites
+## Run it
 
-- JDK 17+
-- Maven 3.9+
-- Docker & Docker Compose
+Prerequisites: JDK 17+, Docker Desktop. Maven is optional (`./mvnw` is included).
 
-## Daily development (app in IntelliJ, MySQL in Docker)
+### Daily development (app in IntelliJ, MySQL in Docker)
 
 ```bash
 docker compose up -d mysql
 ```
 
-Then run `EventServiceApplication` from the IDE with `DB_URL=jdbc:mysql://localhost:3307/event_service_db`, `DB_USERNAME=group8`, `DB_PASSWORD=group8`. MySQL restarts automatically with Docker Desktop and keeps its data. The app container is opt-in (compose profile `app`), so it never grabs port 8081 on its own.
+Run `EventServiceApplication` from IntelliJ with these environment variables (Run → Edit Configurations → Environment variables):
 
-## Run everything in Docker (service + its own MySQL)
+```
+DB_URL=jdbc:mysql://localhost:3307/event_service_db;DB_USERNAME=group8;DB_PASSWORD=group8;SPRING_PROFILES_ACTIVE=dev,seed
+```
+
+`dev` enables the test-token endpoint and `seed` loads demo data. MySQL restarts with Docker Desktop and keeps its data.
+
+- API: `http://localhost:8081`
+- Swagger UI: `http://localhost:8081/swagger-ui/index.html`
+- Health: `http://localhost:8081/actuator/health`
+
+### Everything in Docker (service + its own MySQL)
 
 ```bash
 docker compose --profile app up --build
 ```
 
-- App: `http://localhost:8081`
-- Health: `http://localhost:8081/actuator/health`
-- Swagger UI: `http://localhost:8081/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8081/v3/api-docs`
-- MySQL exposed on host port `3307` (mapped off default 3306 to avoid clashing with a local MySQL install)
+The app container is opt-in (compose profile `app`) so it never takes port 8081 while you run the app from IntelliJ. MySQL is exposed on host port **3307** to avoid clashing with a local MySQL install.
 
-## Run locally without Docker
+### Without Docker
 
-Point at any MySQL 8 instance via env vars, then:
+Point `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` at any MySQL 8 database (created as below), then `./mvnw spring-boot:run`.
 
-```bash
-mvn spring-boot:run
+```sql
+CREATE DATABASE event_service_db;
+CREATE USER 'group8'@'%' IDENTIFIED BY 'group8';
+GRANT ALL PRIVILEGES ON event_service_db.* TO 'group8'@'%';
 ```
 
-Defaults (see `application.yml`) connect to `jdbc:mysql://localhost:3306/event_service_db` with user `group8` / password `group8` if no env vars are set — override `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` as needed.
+Tables are created by Flyway on startup.
 
 ## Configuration
 
-| Env var | Default | Purpose |
+Everything is set through environment variables; defaults suit local development.
+
+| Variable | Default | Purpose |
 |---|---|---|
-| `SERVER_PORT` | `8081` | HTTP port |
+| `SPRING_PROFILES_ACTIVE` | none | `dev` = test-token endpoint, `seed` = demo data, `docker` = deployment (DB variables required). Never use `dev` or `seed` in a shared deployment |
+| `PORT` / `SERVER_PORT` | `8081` | HTTP port (`PORT` is set by Render) |
 | `DB_URL` | `jdbc:mysql://localhost:3306/event_service_db` | JDBC URL |
-| `DB_USERNAME` / `DB_PASSWORD` | `group8` / `group8` | DB credentials |
-| `GROUP5_BASE_URL` | `http://localhost:8001` (`http://identity-service:8001` in the `docker` profile) | Group 5 Identity Service |
+| `DB_USERNAME` / `DB_PASSWORD` | `group8` / `group8` | Database credentials |
+| `GROUP5_BASE_URL` | `http://localhost:8001` (`http://identity-service:8001` in `docker`) | Group 5 Identity Service |
+| `GROUP5_MOCK` | `true` | `true` = every user is eligible, Group 5 is not called |
 | `JWT_JWKS_URI` | `{GROUP5_BASE_URL}/.well-known/jwks.json` | Group 5 public keys used to verify tokens |
 | `JWT_ISSUER` / `JWT_AUDIENCE` | `university-identity-service` / `university-services-platform` | Required `iss` / `aud` of every token |
-| `GROUP5_MOCK` / `GROUP6_MOCK` | `true` | Toggle mock mode for the Group 5 (eligibility) / Group 6 (venue) HTTP clients |
-| `GROUP6_BASE_URL` | local placeholder | Real base URL of Group 6 |
-| `EVENTS_AUTO_COMPLETE_ENABLED` / `EVENTS_AUTO_COMPLETE_INTERVAL` | `true` / `PT5M` | Background job that marks published events COMPLETED once they have ended |
-| `NOTIFICATIONS_MOCK` | `true` | When true, notifications are only logged |
+| `GROUP6_BASE_URL` | `http://localhost:9002` | Group 6 facility-resource-service |
+| `GROUP6_MOCK` | `true` | `true` = every venue is valid, Group 6 is not called |
 | `NOTIFICATIONS_BASE_URL` | `http://localhost:8082` | communication-feedback-service |
-| `NOTIFICATIONS_SERVICE_KEY` | empty | Shared `X-Service-Key` for the notification API (set it, never commit it) |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:3000` | Frontend origins allowed to call the API from a browser. Set to the deployed frontend URL, or empty if the API Gateway handles CORS |
+| `NOTIFICATIONS_MOCK` | `true` | `true` = notifications are only logged |
+| `NOTIFICATIONS_SERVICE_KEY` | empty | Shared `X-Service-Key` for the notification API. Keep it out of Git |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:3000` | Frontend origins allowed to call the API from a browser. Empty if the API Gateway handles CORS |
+| `EVENTS_AUTO_COMPLETE_ENABLED` / `EVENTS_AUTO_COMPLETE_INTERVAL` | `true` / `PT5M` | Job that marks published events COMPLETED after they end |
 
-**Authentication (Group 5).** Users log in on Group 5's Identity Service and send its token as `Authorization: Bearer <token>`. event-service checks the RS256 signature against Group 5's public keys, plus expiry, issuer and audience, and reads the user id from `sub` and the roles from `roles`. It never issues tokens itself, except the dev-only endpoint below.
+## Security and roles
 
-**Event list.** `GET /api/events` takes optional filters that combine with AND: `status`, `from` / `to` (start time, ISO date-time), `upcoming=true`, `mine=true` (events I organize), and `page` / `size` (size 1-100). Results are ordered by start time and the `X-Total-Count` header gives the number of matches. Without any parameters it returns the whole visible list, as before.
+Users log in on **Group 5's Identity Service** and call this API with `Authorization: Bearer <token>`. event-service verifies the RS256 signature with Group 5's public keys (JWKS), plus expiry, issuer and audience. It reads the user id from `sub` (e.g. `usr-student-001`) and the roles from `roles`. It never issues tokens itself, except the `dev`-profile test endpoint.
 
-**Behind the API Gateway.** Every response has an `X-Request-ID` header: the gateway's id is reused (a new one is created if missing), shown in every log line as `[event-service,<id>]`, and forwarded on calls to Group 5, Group 6 and the notification service, so one user action can be traced across services. `X-Forwarded-*` headers are honoured, so Swagger and generated URLs use the public address.
+| Action | Roles |
+|---|---|
+| Create events | EVENT_ORGANIZER, ACADEMIC_STAFF, ADMIN |
+| Edit, publish, complete, cancel an event | Its organizer (EVENT_ORGANIZER / ACADEMIC_STAFF) or ADMIN |
+| See all events incl. drafts, overall summary | ADMIN, ADMINISTRATIVE_STAFF |
+| Per-event summary | The event's organizer, ADMIN, ADMINISTRATIVE_STAFF |
+| Register, cancel own registration, list own registrations | Any signed-in user (registration also checks the event's eligibility rule) |
 
-**Notifications.** After a change is saved, event-service asks communication-feedback-service (`POST /api/notifications/trigger`, see `docs/notification-api-contract.yaml`) to notify users: REGISTRATION_CONFIRMED / REGISTRATION_CANCELLED to the student, EVENT_CANCELLED to every confirmed registrant, and EVENT_UPDATED when a published event's date, time or venue changes. They are sent in the background after the database commit, each with an idempotency key, and a failure is only logged: it never undoes or slows down the user's action.
+Every rule is enforced in the service layer, whatever the frontend shows.
 
-**Group 5 eligibility check.** On registration, unless the event is `{"all": true}`, event-service calls `GET {GROUP5_BASE_URL}/api/v1/validation/users/{userId}/eligibility` with the user's own token. Set `GROUP5_MOCK=false` to use the real service. If Group 5 is down the registration fails with 503 and is never allowed. Rule format and roles: see `docs/data-dictionary.md`.
+## Integrations
 
-**Group 6 venue check.** When a physical event is published, its `venue` (a Group 6 resource code such as `LAB-101`) is checked with `GET {GROUP6_BASE_URL}/api/resources/code/{code}/validate`. Set `GROUP6_MOCK=false` and `GROUP6_BASE_URL` to use the real service; Group 6 needs no token. Their default port is 8081, the same as this service, so run one of them on another port locally.
+Each integration has a mock switch (default on), so the service runs on its own. Every call has a 3 s connect / 5 s read timeout, and an outage never counts as success.
+
+| Service | When | Call | If it is down |
+|---|---|---|---|
+| **Group 5** Identity Service | Every request (token check); registration (eligibility) | `GET /.well-known/jwks.json`; `GET /api/v1/validation/users/{userId}/eligibility` with the user's token | 401 if keys cannot be fetched; registration returns 503 `GROUP5_UNAVAILABLE`, nothing is saved |
+| **Group 6** facility-resource-service | Publishing a physical event | `GET /api/resources/code/{code}/validate` | 503 `GROUP6_UNAVAILABLE`, the event stays DRAFT |
+| **communication-feedback-service** | After a registration or event change is saved | `POST /api/notifications/trigger` with `X-Service-Key` ([contract](docs/notification-api-contract.yaml)) | Logged only; the user's action is never undone or slowed down |
+
+**Eligibility rules** are stored per event as JSON: `{"all": true}` (anyone; Group 5 is not asked) or any of `roles`, `departmentId`, `facultyId`, e.g. `{"roles": ["STUDENT"], "departmentId": "dep-cs"}`, evaluated by Group 5. See [data dictionary](docs/data-dictionary.md).
+
+**Notifications sent:** REGISTRATION_CONFIRMED and REGISTRATION_CANCELLED to the student; EVENT_CANCELLED to every confirmed registrant; EVENT_UPDATED when a published event's date, time or venue changes. Sent in the background after the database commit, each with an idempotency key.
+
+**Tracing and proxies.** Every response carries `X-Request-ID` (the API Gateway's id is reused, otherwise one is created). It appears in every log line as `[event-service,<id>]` and is forwarded to Group 5, Group 6 and the notification service. `X-Forwarded-*` headers are honoured, so Swagger shows the public address behind Render or the gateway.
+
+## API
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/events` | Create a draft event |
+| GET | `/api/events` | List visible events. Optional filters: `status`, `from`, `to`, `upcoming`, `mine`, `page`, `size`; total in `X-Total-Count` |
+| GET | `/api/events/{id}` | Event detail |
+| PATCH | `/api/events/{id}` | Partial update |
+| PATCH | `/api/events/{id}/publish` | Publish (venue checked with Group 6) |
+| PATCH | `/api/events/{id}/complete` | Mark finished (also automatic after the end time) |
+| PATCH | `/api/events/{id}/cancel` | Cancel |
+| POST | `/api/events/{eventId}/registrations` | Register the caller |
+| PATCH | `/api/registrations/{id}/cancel` | Cancel own registration |
+| GET | `/api/registrations/mine` | Own registrations |
+| GET | `/api/events/{eventId}/registrations` | Registration and capacity summary for one event |
+| GET | `/api/events/summary` | Totals across all events |
+
+Every error has the shape `{ "success": false, "error": { "code", "message" } }`. The full list of error codes is in Swagger.
+
+**Frozen contract.** [`docs/event-service-openapi.json`](docs/event-service-openapi.json) is the published contract for the frontend and other services. `ApiContractTest` fails the build if the running API differs from it, so breaking changes can't slip in after the API freeze. After an intentional, agreed change, regenerate and commit it:
+
+```bash
+./mvnw test -Dtest=ApiContractTest -Dcontract.update=true
+```
 
 ## Database
 
-Schema is managed exclusively via Flyway migrations in `src/main/resources/db/migration` — `spring.jpa.hibernate.ddl-auto=validate`, so Hibernate never auto-generates schema; it only checks entities match what Flyway already created.
+MySQL database `event_service_db`, owned only by this service. Tables, columns, statuses, rules and the ERD are in [docs/data-dictionary.md](docs/data-dictionary.md).
 
-## Status
+Schema changes are made **only** through Flyway migrations in `src/main/resources/db/migration`. `ddl-auto=validate` makes Hibernate check the entities against the schema and never change it. Never edit a migration that has already run anywhere; add a new version instead.
 
-- [x] Scaffold + health check
-- [x] Environment config
-- [x] Database schema + Flyway migrations
-- [x] JWT authentication + role-based authorization
-- [x] Group 5 tokens (JWKS) and eligibility API, Group 6 venue API (both with mock switches)
-- [x] Event CRUD
-- [x] Registration flow
+| Migration | Change |
+|---|---|
+| V1 | `events` table |
+| V2 | `registrations` table (unique event + user, FK to events) |
+| V3 | User ids widened to Group 5 format (`VARCHAR(64)`) |
+| V4 | Indexes for own registrations, organizer lookups and the auto-complete job |
 
-## Demo data
+**Demo data:** the `seed` profile loads `db/seed/R__seed_demo_data.sql`, which has 6 events in every status and 5 registrations, with fixed ids matching the Postman collection. It is safe to re-run. **Reset** local data with `docker compose down -v` (deletes the MySQL volume), then start again.
 
-Start the app with `SPRING_PROFILES_ACTIVE=dev,seed` to load sample events and registrations (see `docs/data-dictionary.md`). The seed is safe to re-run and is never loaded without the `seed` profile.
-
-## API contract (frozen)
-
-`docs/event-service-openapi.json` is the published contract for the frontend, communication-feedback-service and other groups (also live at `/v3/api-docs` and Swagger UI). `ApiContractTest` fails the build if the running API no longer matches it, so breaking changes can't slip in after the API freeze. After an intentional, agreed change, regenerate and commit the file:
+## Testing
 
 ```bash
-mvn test -Dtest=ApiContractTest -Dcontract.update=true
+docker compose up -d mysql
+./mvnw clean verify
 ```
 
-## API testing (Postman)
+Runs unit tests (business rules, security, Group 5/6 and notification clients against fake HTTP servers), integration tests against the real MySQL schema, and the API contract check. CI (GitHub Actions) runs the same on every PR and push to `main`, with its own MySQL.
 
-Import `docs/event-service.postman_collection.json`. It has 60 requests covering every endpoint and every error code, with assertions on each.
+**Postman:** import [`docs/event-service.postman_collection.json`](docs/event-service.postman_collection.json). It has 60 requests covering every endpoint and error code, with assertions. Start the app with `SPRING_PROFILES_ACTIVE=dev,seed`, then run the folders in order (folder 0 mints test tokens). Headless:
 
-1. Start the app with `SPRING_PROFILES_ACTIVE=dev` (this enables `POST /api/dev/token?userId=usr-organizer-001&roles=EVENT_ORGANIZER`, which mints Group 5-shaped test tokens with a key generated at startup). Never enable `dev` on a shared deployment: anyone could mint an ADMIN token.
-2. Run the collection in order — folder 0 mints tokens, the rest use them. `baseUrl` defaults to `http://localhost:8081`.
+```bash
+npx newman run docs/event-service.postman_collection.json --env-var baseUrl=http://localhost:8081
+```
 
-Headless run: `npx newman run docs/event-service.postman_collection.json`
+Against a real deployment (no `dev` profile), skip folder 0, log in on Group 5 (`POST /api/v1/auth/login`) and paste the `access_token` values into the token variables.
 
-Against a real deployment (no dev endpoint), skip folder 0, log in on Group 5 (`POST /api/v1/auth/login`) and paste each `access_token` into the token variables.
+## Deployment
+
+The `Dockerfile` builds a small JRE image with a health check on `/actuator/health`. It is deployed on **Render** (Docker) with an **Aiven** MySQL database. Merges to `main` pass CI and then deploy.
+
+Render environment for the final setup:
+
+```
+SPRING_PROFILES_ACTIVE=docker
+DB_URL=jdbc:mysql://<aiven-host>:<port>/event_service_db?sslMode=REQUIRED
+DB_USERNAME=... DB_PASSWORD=...
+GROUP5_BASE_URL=<Group 5 URL>             GROUP5_MOCK=false
+GROUP6_BASE_URL=<Group 6 URL>             GROUP6_MOCK=false
+NOTIFICATIONS_BASE_URL=<comms URL>        NOTIFICATIONS_MOCK=false
+NOTIFICATIONS_SERVICE_KEY=<shared key>
+CORS_ALLOWED_ORIGINS=<frontend URL, or empty behind the API Gateway>
+```
+
+Until a dependency is deployed, leave its `*_MOCK` unset (true). While Group 5 is unreachable, every request is 401 because tokens cannot be verified.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `Communications link failure` / connection refused on startup | MySQL is not running: start Docker Desktop, then `docker compose up -d mysql`. Check `DB_URL` uses port 3307 for the Docker database |
+| `Port 8081 was already in use` | Another copy is running (IntelliJ, or the Docker `app` container). Stop it, or `docker compose stop event-service`, or set `SERVER_PORT` |
+| Every request returns 401 | No valid token: use the `dev` profile token endpoint locally, or check `GROUP5_BASE_URL` / JWKS reachability in a deployment |
+| Registration returns 503 `GROUP5_UNAVAILABLE` | `GROUP5_MOCK=false` but Group 5 is unreachable at `GROUP5_BASE_URL` |
+| Publishing returns 503 `GROUP6_UNAVAILABLE` | `GROUP6_MOCK=false` but Group 6 is unreachable at `GROUP6_BASE_URL` |
+| Log shows `Notification ... was not delivered` | communication-feedback-service is down or `NOTIFICATIONS_SERVICE_KEY` is wrong (401). The user's action still succeeded |
+| Build fails in `ApiContractTest` | The API changed. Revert, or if the change is agreed, regenerate the contract (see [API](#api)) |
+| Browser shows a CORS error | Add the frontend origin to `CORS_ALLOWED_ORIGINS` |
