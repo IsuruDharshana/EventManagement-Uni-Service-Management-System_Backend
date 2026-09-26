@@ -70,9 +70,9 @@ Constraints and indexes: unique `(event_id, user_id)` stops a user registering t
 | Event status | Meaning | Allowed next |
 |---|---|---|
 | DRAFT | Being prepared, visible only to the organizer and admin staff | PUBLISHED, CANCELLED |
-| PUBLISHED | Visible to everyone, open for registration inside the window | CANCELLED |
+| PUBLISHED | Visible to everyone, open for registration inside the window | CANCELLED, COMPLETED |
 | CANCELLED | Called off | none |
-| COMPLETED | Finished | none |
+| COMPLETED | Finished. Set automatically once schedule_end has passed (checked every 5 minutes), or earlier by the organizer / ADMIN after the event has started. Feedback is only accepted for completed events | none |
 
 | Registration status | Meaning |
 |---|---|

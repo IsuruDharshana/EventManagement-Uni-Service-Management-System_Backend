@@ -1,5 +1,6 @@
 package com.group8.eventservice.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -138,6 +139,29 @@ public class EventService {
 
         event.setStatus(EventStatus.CANCELLED);
         return EventResponse.from(eventRepository.saveAndFlush(event));
+    }
+
+    /** Marks a published event as finished, e.g. when it ended early. Feedback is only accepted for COMPLETED events. */
+    @Transactional
+    public EventResponse completeEvent(UUID id) {
+        Event event = findOrThrow(id);
+        requireOwnerOrAdmin(event);
+
+        if (event.getStatus() != EventStatus.PUBLISHED) {
+            throw new ApiException("INVALID_STATE", "Only published events can be completed.", HttpStatus.BAD_REQUEST);
+        }
+        if (LocalDateTime.now().isBefore(event.getScheduleStart())) {
+            throw new ApiException("EVENT_NOT_STARTED", "An event cannot be completed before it starts.", HttpStatus.BAD_REQUEST);
+        }
+
+        event.setStatus(EventStatus.COMPLETED);
+        return EventResponse.from(eventRepository.saveAndFlush(event));
+    }
+
+    /** Completes every published event whose end time has passed. Run on a schedule by {@link EventCompletionJob}. */
+    @Transactional
+    public int completeFinishedEvents() {
+        return eventRepository.completeFinishedEvents(LocalDateTime.now());
     }
 
     private void requireVenueAvailable(Event event) {

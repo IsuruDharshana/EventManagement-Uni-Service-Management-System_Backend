@@ -255,6 +255,55 @@ class EventServiceRulesTest {
     }
 
     @Test
+    void ownerCanCompleteAStartedEvent() {
+        Event event = event(EventStatus.PUBLISHED);
+        event.setScheduleStart(LocalDateTime.now().minusHours(1));
+        loginAs(ownerId, "EVENT_ORGANIZER");
+
+        assertThat(service.completeEvent(eventId).status()).isEqualTo(EventStatus.COMPLETED);
+    }
+
+    @Test
+    void adminCanCompleteAnyStartedEvent() {
+        Event event = event(EventStatus.PUBLISHED);
+        event.setScheduleStart(LocalDateTime.now().minusHours(1));
+        loginAs("usr-admin-001", "ADMIN");
+
+        assertThat(service.completeEvent(eventId).status()).isEqualTo(EventStatus.COMPLETED);
+    }
+
+    @Test
+    void cannotCompleteAnEventBeforeItStarts() {
+        Event event = event(EventStatus.PUBLISHED);
+        loginAs(ownerId, "EVENT_ORGANIZER");
+
+        assertThatThrownBy(() -> service.completeEvent(eventId)).isInstanceOf(ApiException.class)
+                .extracting(EventServiceRulesTest::codeOf).isEqualTo("EVENT_NOT_STARTED");
+        assertThat(event.getStatus()).isEqualTo(EventStatus.PUBLISHED);
+    }
+
+    @Test
+    void onlyPublishedEventsCanBeCompleted() {
+        loginAs(ownerId, "EVENT_ORGANIZER");
+        for (EventStatus status : List.of(EventStatus.DRAFT, EventStatus.CANCELLED, EventStatus.COMPLETED)) {
+            Event event = event(status);
+            event.setScheduleStart(LocalDateTime.now().minusHours(1));
+            assertThatThrownBy(() -> service.completeEvent(eventId)).as(status.name()).isInstanceOf(ApiException.class)
+                    .extracting(EventServiceRulesTest::codeOf).isEqualTo("INVALID_STATE");
+        }
+    }
+
+    @Test
+    void anotherOrganizerCannotComplete() {
+        Event event = event(EventStatus.PUBLISHED);
+        event.setScheduleStart(LocalDateTime.now().minusHours(1));
+        loginAs("usr-organizer-002", "EVENT_ORGANIZER");
+
+        assertThatThrownBy(() -> service.completeEvent(eventId)).isInstanceOf(ApiException.class)
+                .extracting(EventServiceRulesTest::codeOf).isEqualTo("FORBIDDEN");
+    }
+
+    @Test
     void studentCanSeePublishedEvent() {
         event(EventStatus.PUBLISHED);
         loginAs("usr-student-001", "STUDENT");

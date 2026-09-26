@@ -16,7 +16,11 @@
           "pm.collectionVariables.set('registrationOpenAt', iso(new Date(now - day)));",
           "pm.collectionVariables.set('registrationCloseAt', iso(new Date(now + 6 * day)));",
           "pm.collectionVariables.set('scheduleStart', iso(new Date(now + 7 * day)));",
-          "pm.collectionVariables.set('scheduleEnd', iso(new Date(now + 7 * day + 2 * 3600000)));"
+          "pm.collectionVariables.set('scheduleEnd', iso(new Date(now + 7 * day + 2 * 3600000)));",
+          "// An event that is already running: started an hour ago, ends in an hour.",
+          "pm.collectionVariables.set('runningOpenAt', iso(new Date(now - 2 * day)));",
+          "pm.collectionVariables.set('runningStart', iso(new Date(now - 3600000)));",
+          "pm.collectionVariables.set('runningEnd', iso(new Date(now + 3600000)));"
         ]
       }
     }
@@ -60,6 +64,10 @@
     },
     {
       "key": "registrationId",
+      "value": ""
+    },
+    {
+      "key": "runningEventId",
       "value": ""
     }
   ],
@@ -1897,6 +1905,348 @@
                 "exec": [
                   "pm.test('Status is 400', () => pm.response.to.have.status(400));",
                   "pm.test('error.code is EVENT_NOT_PUBLISHED', () => pm.expect(pm.response.json().error.code).to.eql('EVENT_NOT_PUBLISHED'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Complete event",
+      "item": [
+        {
+          "name": "Complete a future event -> 400 EVENT_NOT_STARTED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{capEventId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{capEventId}}",
+                "complete"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error.code is EVENT_NOT_STARTED', () => pm.expect(pm.response.json().error.code).to.eql('EVENT_NOT_STARTED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create an event that is already running",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Running Event\",\n  \"description\": \"Started an hour ago\",\n  \"online\": true,\n  \"scheduleStart\": \"{{runningStart}}\",\n  \"scheduleEnd\": \"{{runningEnd}}\",\n  \"capacity\": 20,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{runningOpenAt}}\",\n  \"registrationCloseAt\": \"{{runningStart}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('runningEventId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete while still DRAFT -> 400 INVALID_STATE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{runningEventId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{runningEventId}}",
+                "complete"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error.code is INVALID_STATE', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_STATE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish the running event",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{runningEventId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{runningEventId}}",
+                "publish"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete as another organizer -> 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{otherOrganizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{runningEventId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{runningEventId}}",
+                "complete"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('error.code is FORBIDDEN', () => pm.expect(pm.response.json().error.code).to.eql('FORBIDDEN'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete as student -> 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{runningEventId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{runningEventId}}",
+                "complete"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete the running event (owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{runningEventId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{runningEventId}}",
+                "complete"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('now COMPLETED', () => pm.expect(pm.response.json().status).to.eql('COMPLETED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete again -> 400 INVALID_STATE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{runningEventId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{runningEventId}}",
+                "complete"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error.code is INVALID_STATE', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_STATE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel a completed event -> 400 INVALID_STATE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{runningEventId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{runningEventId}}",
+                "cancel"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error.code is INVALID_STATE', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_STATE'));"
                 ]
               }
             }

@@ -51,6 +51,11 @@ jwt:
   issuer: ${JWT_ISSUER:university-identity-service}
   audience: ${JWT_AUDIENCE:university-services-platform}
 
+events:
+  auto-complete:
+    enabled: ${EVENTS_AUTO_COMPLETE_ENABLED:true}
+    interval: ${EVENTS_AUTO_COMPLETE_INTERVAL:PT5M}
+
 integrations:
   group5:
     mock: ${GROUP5_MOCK:true}
