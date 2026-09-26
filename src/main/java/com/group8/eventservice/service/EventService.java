@@ -2,8 +2,10 @@ package com.group8.eventservice.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,8 +15,11 @@ import com.group8.eventservice.dto.request.UpdateEventRequest;
 import com.group8.eventservice.dto.response.EventResponse;
 import com.group8.eventservice.entity.Event;
 import com.group8.eventservice.entity.EventStatus;
+import com.group8.eventservice.entity.RegistrationStatus;
 import com.group8.eventservice.exception.ApiException;
+import com.group8.eventservice.notification.Notifications;
 import com.group8.eventservice.repository.EventRepository;
+import com.group8.eventservice.repository.RegistrationRepository;
 import com.group8.eventservice.security.Roles;
 import com.group8.eventservice.security.SecurityUtils;
 
@@ -26,7 +31,9 @@ import lombok.RequiredArgsConstructor;
 public class EventService {
 
     private final EventRepository eventRepository;
+    private final RegistrationRepository registrationRepository;
     private final Group6Client group6Client;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public EventResponse createEvent(CreateEventRequest request) {
@@ -74,6 +81,7 @@ public class EventService {
     public EventResponse updateEvent(UUID id, UpdateEventRequest request) {
         Event event = findOrThrow(id);
         requireOwnerOrAdmin(event);
+        String oldWhen = whenAndWhere(event);
 
         if (request.getTitle() != null) {
             event.setTitle(request.getTitle());
@@ -109,7 +117,12 @@ public class EventService {
 
         validateScheduleCoherence(event);
 
-        return EventResponse.from(eventRepository.saveAndFlush(event));
+        Event saved = eventRepository.saveAndFlush(event);
+        // Registrants only hear about changes to when or where a published event happens.
+        if (saved.getStatus() == EventStatus.PUBLISHED && !oldWhen.equals(whenAndWhere(saved))) {
+            eventPublisher.publishEvent(Notifications.eventUpdated(saved, confirmedRegistrants(saved)));
+        }
+        return EventResponse.from(saved);
     }
 
     @Transactional
@@ -138,7 +151,9 @@ public class EventService {
         }
 
         event.setStatus(EventStatus.CANCELLED);
-        return EventResponse.from(eventRepository.saveAndFlush(event));
+        Event saved = eventRepository.saveAndFlush(event);
+        eventPublisher.publishEvent(Notifications.eventCancelled(saved, confirmedRegistrants(saved)));
+        return EventResponse.from(saved);
     }
 
     /** Marks a published event as finished, e.g. when it ended early. Feedback is only accepted for COMPLETED events. */
@@ -194,6 +209,15 @@ public class EventService {
             return;
         }
         throw new ApiException("FORBIDDEN", "You do not own this event.", HttpStatus.FORBIDDEN);
+    }
+
+    private List<String> confirmedRegistrants(Event event) {
+        return registrationRepository.findUserIdsByEventIdAndStatus(event.getId(), RegistrationStatus.CONFIRMED);
+    }
+
+    private static String whenAndWhere(Event event) {
+        return event.getScheduleStart() + "|" + event.getScheduleEnd() + "|" + event.isOnline() + "|"
+                + Objects.toString(event.getVenue(), "");
     }
 
     private static boolean canSeeAllEvents() {

@@ -16,6 +16,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,12 +27,18 @@ import com.group8.eventservice.dto.request.UpdateEventRequest;
 import com.group8.eventservice.entity.Event;
 import com.group8.eventservice.entity.EventStatus;
 import com.group8.eventservice.exception.ApiException;
+import com.group8.eventservice.entity.RegistrationStatus;
+import com.group8.eventservice.notification.NotificationRequest;
+import com.group8.eventservice.notification.NotificationsRequested;
 import com.group8.eventservice.repository.EventRepository;
+import com.group8.eventservice.repository.RegistrationRepository;
 
 /** Ownership, status-transition and schedule rules for events (S2-01.2, S2-01.3). */
 class EventServiceRulesTest {
 
     private EventRepository eventRepository;
+    private RegistrationRepository registrationRepository;
+    private ApplicationEventPublisher eventPublisher;
     private EventService service;
     private UUID eventId;
     private String ownerId;
@@ -38,7 +46,9 @@ class EventServiceRulesTest {
     @BeforeEach
     void setUp() {
         eventRepository = mock(EventRepository.class);
-        service = new EventService(eventRepository, mock(Group6Client.class));
+        registrationRepository = mock(RegistrationRepository.class);
+        eventPublisher = mock(ApplicationEventPublisher.class);
+        service = new EventService(eventRepository, registrationRepository, mock(Group6Client.class), eventPublisher);
         eventId = UUID.randomUUID();
         ownerId = "usr-organizer-001";
         when(eventRepository.saveAndFlush(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -301,6 +311,63 @@ class EventServiceRulesTest {
 
         assertThatThrownBy(() -> service.completeEvent(eventId)).isInstanceOf(ApiException.class)
                 .extracting(EventServiceRulesTest::codeOf).isEqualTo("FORBIDDEN");
+    }
+
+    private NotificationsRequested publishedNotifications() {
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        return (NotificationsRequested) captor.getValue();
+    }
+
+    @Test
+    void cancellingAnEventNotifiesEveryConfirmedRegistrant() {
+        event(EventStatus.PUBLISHED);
+        loginAs(ownerId, "EVENT_ORGANIZER");
+        when(registrationRepository.findUserIdsByEventIdAndStatus(eventId, RegistrationStatus.CONFIRMED))
+                .thenReturn(List.of("usr-student-001", "usr-student-002"));
+
+        service.cancelEvent(eventId);
+
+        List<NotificationRequest> sent = publishedNotifications().notifications();
+        assertThat(sent).extracting(NotificationRequest::recipientId).containsExactly("usr-student-001", "usr-student-002");
+        assertThat(sent).allSatisfy(n -> {
+            assertThat(n.type()).isEqualTo("EVENT_CANCELLED");
+            assertThat(n.message()).isEqualTo("Original has been cancelled.");
+            assertThat(n.relatedId()).isEqualTo(eventId.toString());
+        });
+        assertThat(sent.get(0).idempotencyKey()).isEqualTo("EVENT_CANCELLED:" + eventId + ":usr-student-001");
+    }
+
+    @Test
+    void movingAPublishedEventNotifiesRegistrants() {
+        Event event = event(EventStatus.PUBLISHED);
+        loginAs(ownerId, "EVENT_ORGANIZER");
+        when(registrationRepository.findUserIdsByEventIdAndStatus(eventId, RegistrationStatus.CONFIRMED))
+                .thenReturn(List.of("usr-student-001"));
+        UpdateEventRequest request = new UpdateEventRequest();
+        request.setScheduleEnd(event.getScheduleEnd().plusHours(1));
+
+        service.updateEvent(eventId, request);
+
+        NotificationRequest sent = publishedNotifications().notifications().get(0);
+        assertThat(sent.type()).isEqualTo("EVENT_UPDATED");
+        assertThat(sent.idempotencyKey()).startsWith("EVENT_UPDATED:" + eventId + ":").endsWith(":usr-student-001");
+    }
+
+    @Test
+    void renamingAnEventOrEditingADraftSendsNothing() {
+        event(EventStatus.PUBLISHED);
+        loginAs(ownerId, "EVENT_ORGANIZER");
+        UpdateEventRequest rename = new UpdateEventRequest();
+        rename.setTitle("Renamed");
+        service.updateEvent(eventId, rename);
+
+        Event draft = event(EventStatus.DRAFT);
+        UpdateEventRequest move = new UpdateEventRequest();
+        move.setScheduleEnd(draft.getScheduleEnd().plusHours(1));
+        service.updateEvent(eventId, move);
+
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test

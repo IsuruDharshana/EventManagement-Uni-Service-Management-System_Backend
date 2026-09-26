@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import com.group8.eventservice.entity.EventStatus;
 import com.group8.eventservice.entity.Registration;
 import com.group8.eventservice.entity.RegistrationStatus;
 import com.group8.eventservice.exception.ApiException;
+import com.group8.eventservice.notification.Notifications;
 import com.group8.eventservice.repository.EventRepository;
 import com.group8.eventservice.repository.RegistrationRepository;
 import com.group8.eventservice.security.SecurityUtils;
@@ -31,6 +33,7 @@ public class RegistrationService {
     private final EventRepository eventRepository;
     private final RegistrationRepository registrationRepository;
     private final Group5Client group5Client;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public RegistrationResponse register(UUID eventId) {
@@ -76,7 +79,9 @@ public class RegistrationService {
                     .userId(userId)
                     .status(RegistrationStatus.CONFIRMED)
                     .build();
-            return RegistrationResponse.from(registrationRepository.saveAndFlush(registration));
+            Registration saved = registrationRepository.saveAndFlush(registration);
+            eventPublisher.publishEvent(Notifications.registrationConfirmed(saved));
+            return RegistrationResponse.from(saved);
         } catch (DataIntegrityViolationException ex) {
             throw new ApiException("ALREADY_REGISTERED", "You have already registered for this event.", HttpStatus.CONFLICT);
         }
@@ -112,7 +117,9 @@ public class RegistrationService {
         }
 
         registration.setStatus(RegistrationStatus.CANCELLED);
-        return RegistrationResponse.from(registrationRepository.saveAndFlush(registration));
+        Registration saved = registrationRepository.saveAndFlush(registration);
+        eventPublisher.publishEvent(Notifications.registrationCancelled(saved));
+        return RegistrationResponse.from(saved);
     }
 
     public List<RegistrationResponse> myRegistrations() {
