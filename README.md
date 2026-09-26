@@ -60,8 +60,11 @@ Defaults (see `application.yml`) connect to `jdbc:mysql://localhost:3306/event_s
 | `NOTIFICATIONS_MOCK` | `true` | When true, notifications are only logged |
 | `NOTIFICATIONS_BASE_URL` | `http://localhost:8082` | communication-feedback-service |
 | `NOTIFICATIONS_SERVICE_KEY` | empty | Shared `X-Service-Key` for the notification API (set it, never commit it) |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:3000` | Frontend origins allowed to call the API from a browser. Set to the deployed frontend URL, or empty if the API Gateway handles CORS |
 
 **Authentication (Group 5).** Users log in on Group 5's Identity Service and send its token as `Authorization: Bearer <token>`. event-service checks the RS256 signature against Group 5's public keys, plus expiry, issuer and audience, and reads the user id from `sub` and the roles from `roles`. It never issues tokens itself, except the dev-only endpoint below.
+
+**Behind the API Gateway.** Every response has an `X-Request-ID` header: the gateway's id is reused (a new one is created if missing), shown in every log line as `[event-service,<id>]`, and forwarded on calls to Group 5, Group 6 and the notification service, so one user action can be traced across services. `X-Forwarded-*` headers are honoured, so Swagger and generated URLs use the public address.
 
 **Notifications.** After a change is saved, event-service asks communication-feedback-service (`POST /api/notifications/trigger`, see `docs/notification-api-contract.yaml`) to notify users: REGISTRATION_CONFIRMED / REGISTRATION_CANCELLED to the student, EVENT_CANCELLED to every confirmed registrant, and EVENT_UPDATED when a published event's date, time or venue changes. They are sent in the background after the database commit, each with an idempotency key, and a failure is only logged: it never undoes or slows down the user's action.
 
