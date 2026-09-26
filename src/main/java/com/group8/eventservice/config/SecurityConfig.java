@@ -69,7 +69,7 @@ public class SecurityConfig {
         cors.setAllowedOrigins(allowedOrigins.stream().map(String::trim).filter(o -> !o.isEmpty()).toList());
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Authorization", "Content-Type", RequestIdFilter.HEADER));
-        cors.setExposedHeaders(List.of(RequestIdFilter.HEADER));
+        cors.setExposedHeaders(List.of(RequestIdFilter.HEADER, "X-Total-Count"));
         cors.setAllowCredentials(false);
         cors.setMaxAge(3600L);
 

@@ -64,6 +64,8 @@ Defaults (see `application.yml`) connect to `jdbc:mysql://localhost:3306/event_s
 
 **Authentication (Group 5).** Users log in on Group 5's Identity Service and send its token as `Authorization: Bearer <token>`. event-service checks the RS256 signature against Group 5's public keys, plus expiry, issuer and audience, and reads the user id from `sub` and the roles from `roles`. It never issues tokens itself, except the dev-only endpoint below.
 
+**Event list.** `GET /api/events` takes optional filters that combine with AND: `status`, `from` / `to` (start time, ISO date-time), `upcoming=true`, `mine=true` (events I organize), and `page` / `size` (size 1-100). Results are ordered by start time and the `X-Total-Count` header gives the number of matches. Without any parameters it returns the whole visible list, as before.
+
 **Behind the API Gateway.** Every response has an `X-Request-ID` header: the gateway's id is reused (a new one is created if missing), shown in every log line as `[event-service,<id>]`, and forwarded on calls to Group 5, Group 6 and the notification service, so one user action can be traced across services. `X-Forwarded-*` headers are honoured, so Swagger and generated URLs use the public address.
 
 **Notifications.** After a change is saved, event-service asks communication-feedback-service (`POST /api/notifications/trigger`, see `docs/notification-api-contract.yaml`) to notify users: REGISTRATION_CONFIRMED / REGISTRATION_CANCELLED to the student, EVENT_CANCELLED to every confirmed registrant, and EVENT_UPDATED when a published event's date, time or venue changes. They are sent in the background after the database commit, each with an idempotency key, and a failure is only logged: it never undoes or slows down the user's action.
@@ -92,7 +94,7 @@ Start the app with `SPRING_PROFILES_ACTIVE=dev,seed` to load sample events and r
 
 ## API testing (Postman)
 
-Import `docs/event-service.postman_collection.json`. It has 56 requests covering every endpoint and every error code, with assertions on each.
+Import `docs/event-service.postman_collection.json`. It has 60 requests covering every endpoint and every error code, with assertions on each.
 
 1. Start the app with `SPRING_PROFILES_ACTIVE=dev` (this enables `POST /api/dev/token?userId=usr-organizer-001&roles=EVENT_ORGANIZER`, which mints Group 5-shaped test tokens with a key generated at startup). Never enable `dev` on a shared deployment: anyone could mint an ADMIN token.
 2. Run the collection in order — folder 0 mints tokens, the rest use them. `baseUrl` defaults to `http://localhost:8081`.

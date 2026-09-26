@@ -1,16 +1,22 @@
 package com.group8.eventservice.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.group8.eventservice.dto.request.CreateEventRequest;
+import com.group8.eventservice.dto.request.EventFilter;
 import com.group8.eventservice.dto.request.UpdateEventRequest;
 import com.group8.eventservice.dto.response.EventResponse;
 import com.group8.eventservice.entity.Event;
@@ -19,6 +25,7 @@ import com.group8.eventservice.entity.RegistrationStatus;
 import com.group8.eventservice.exception.ApiException;
 import com.group8.eventservice.notification.Notifications;
 import com.group8.eventservice.repository.EventRepository;
+import com.group8.eventservice.repository.EventSpecifications;
 import com.group8.eventservice.repository.RegistrationRepository;
 import com.group8.eventservice.security.Roles;
 import com.group8.eventservice.security.SecurityUtils;
@@ -57,14 +64,57 @@ public class EventService {
         return EventResponse.from(eventRepository.saveAndFlush(event));
     }
 
-    public List<EventResponse> listVisibleEvents() {
-        List<Event> events = canSeeAllEvents()
-                ? eventRepository.findAll()
-                : eventRepository.findAll().stream()
-                        .filter(this::isVisibleToNonAdmin)
-                        .toList();
+    public static final int MAX_PAGE_SIZE = 100;
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final Sort BY_START = Sort.by("scheduleStart", "id");
 
-        return events.stream().map(EventResponse::from).toList();
+    /**
+     * Events the caller may see, filtered in the database and ordered by start time. Without page/size
+     * the whole filtered list is returned (the original behaviour); total is always the full match count.
+     */
+    public EventPage listVisibleEvents(EventFilter filter) {
+        if (filter.from() != null && filter.to() != null && filter.to().isBefore(filter.from())) {
+            throw new ApiException("VALIDATION_ERROR", "to must not be before from.", HttpStatus.BAD_REQUEST);
+        }
+
+        String me = SecurityUtils.currentUserId();
+        List<Specification<Event>> conditions = new ArrayList<>();
+        if (!canSeeAllEvents()) {
+            conditions.add(EventSpecifications.visibleTo(me));
+        }
+        if (filter.status() != null) {
+            conditions.add(EventSpecifications.hasStatus(filter.status()));
+        }
+        if (filter.mine()) {
+            conditions.add(EventSpecifications.organizedBy(me));
+        }
+        if (filter.upcoming()) {
+            conditions.add(EventSpecifications.startsAtOrAfter(LocalDateTime.now()));
+        }
+        if (filter.from() != null) {
+            conditions.add(EventSpecifications.startsAtOrAfter(filter.from()));
+        }
+        if (filter.to() != null) {
+            conditions.add(EventSpecifications.startsAtOrBefore(filter.to()));
+        }
+        Specification<Event> spec = Specification.allOf(conditions);
+
+        if (filter.page() == null && filter.size() == null) {
+            List<EventResponse> events = eventRepository.findAll(spec, BY_START).stream().map(EventResponse::from).toList();
+            return new EventPage(events, events.size());
+        }
+
+        int page = filter.page() == null ? 0 : filter.page();
+        int size = filter.size() == null ? DEFAULT_PAGE_SIZE : filter.size();
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
+            throw new ApiException("VALIDATION_ERROR",
+                    "page must be 0 or more and size between 1 and " + MAX_PAGE_SIZE + ".", HttpStatus.BAD_REQUEST);
+        }
+        Page<Event> result = eventRepository.findAll(spec, PageRequest.of(page, size, BY_START));
+        return new EventPage(result.getContent().stream().map(EventResponse::from).toList(), result.getTotalElements());
+    }
+
+    public record EventPage(List<EventResponse> events, long total) {
     }
 
     public EventResponse getEventDetail(UUID id) {

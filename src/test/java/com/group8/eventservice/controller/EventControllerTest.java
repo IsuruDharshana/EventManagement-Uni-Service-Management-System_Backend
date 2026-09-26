@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.group8.eventservice.config.JwtConfig;
 import com.group8.eventservice.config.SecurityConfig;
+import com.group8.eventservice.dto.request.EventFilter;
 import com.group8.eventservice.dto.response.EventResponse;
 import com.group8.eventservice.entity.EventStatus;
 import com.group8.eventservice.exception.GlobalExceptionHandler;
@@ -173,10 +175,41 @@ class EventControllerTest {
 
     @Test
     void listEventsIsReachableByAnyAuthenticatedUser() throws Exception {
-        when(eventService.listVisibleEvents()).thenReturn(List.of());
+        when(eventService.listVisibleEvents(EventFilter.none())).thenReturn(new EventService.EventPage(List.of(), 0));
 
         mockMvc.perform(get("/api/events")
                         .header("Authorization", "Bearer " + tokenFor("STUDENT")))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Total-Count", "0"));
+    }
+
+    @Test
+    void listEventsPassesEveryFilterToTheService() throws Exception {
+        EventFilter expected = new EventFilter(EventStatus.PUBLISHED, LocalDateTime.of(2026, 10, 1, 0, 0),
+                LocalDateTime.of(2026, 10, 31, 23, 59, 59), true, true, 2, 10);
+        when(eventService.listVisibleEvents(expected)).thenReturn(new EventService.EventPage(List.of(), 57));
+
+        mockMvc.perform(get("/api/events")
+                        .param("status", "PUBLISHED")
+                        .param("from", "2026-10-01T00:00:00")
+                        .param("to", "2026-10-31T23:59:59")
+                        .param("upcoming", "true")
+                        .param("mine", "true")
+                        .param("page", "2")
+                        .param("size", "10")
+                        .header("Authorization", "Bearer " + tokenFor("STUDENT")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Total-Count", "57"));
+    }
+
+    @Test
+    void listEventsRejectsUnknownStatusAndBadDates() throws Exception {
+        mockMvc.perform(get("/api/events").param("status", "OPEN")
+                        .header("Authorization", "Bearer " + tokenFor("STUDENT")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+        mockMvc.perform(get("/api/events").param("from", "next week")
+                        .header("Authorization", "Bearer " + tokenFor("STUDENT")))
+                .andExpect(status().isBadRequest());
     }
 }
