@@ -1,8 +1,10 @@
 package com.group8.eventservice.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,15 +14,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.group8.eventservice.dto.request.CreateEventRequest;
+import com.group8.eventservice.dto.request.EventFilter;
 import com.group8.eventservice.dto.request.UpdateEventRequest;
 import com.group8.eventservice.dto.response.EventResponse;
+import com.group8.eventservice.entity.EventStatus;
 import com.group8.eventservice.exception.ApiErrorResponse;
 import com.group8.eventservice.service.EventService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,6 +41,7 @@ import lombok.RequiredArgsConstructor;
 public class EventController {
 
     private static final String ERR = "application/json";
+    private static final String TOTAL_COUNT = "X-Total-Count";
     private static final String MANAGE_ROLES = "hasAnyRole('EVENT_ORGANIZER', 'ACADEMIC_STAFF', 'ADMIN')";
 
     private final EventService eventService;
@@ -57,12 +64,30 @@ public class EventController {
 
     @GetMapping
     @Operation(summary = "List events visible to the caller",
-            description = "Everyone sees PUBLISHED events. Organizers also see their own non-published events. ADMIN and ADMINISTRATIVE_STAFF see all.")
-    @ApiResponse(responseCode = "200", description = "Visible events")
+            description = "Everyone sees PUBLISHED events. Organizers also see their own non-published events. "
+                    + "ADMIN and ADMINISTRATIVE_STAFF see all. All filters are optional and combine with AND; results are "
+                    + "ordered by start time. Without page/size the whole filtered list is returned. "
+                    + "X-Total-Count always holds the number of matching events.")
+    @ApiResponse(responseCode = "200", description = "Visible events (header X-Total-Count = total matches)")
+    @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: unknown status, bad date, to before from, or page/size out of range",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
-    public List<EventResponse> listEvents() {
-        return eventService.listVisibleEvents();
+    public ResponseEntity<List<EventResponse>> listEvents(
+            @Parameter(description = "Only events with this status") @RequestParam(required = false) EventStatus status,
+            @Parameter(description = "Only events starting at or after this time", example = "2026-10-01T00:00:00")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Only events starting at or before this time", example = "2026-10-31T23:59:59")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @Parameter(description = "Only events that have not started yet") @RequestParam(defaultValue = "false") boolean upcoming,
+            @Parameter(description = "Only events the caller organizes") @RequestParam(defaultValue = "false") boolean mine,
+            @Parameter(description = "Page number, from 0") @RequestParam(required = false) Integer page,
+            @Parameter(description = "Page size, 1 to 100 (default 20 when page is given)") @RequestParam(required = false) Integer size) {
+        EventService.EventPage result = eventService.listVisibleEvents(
+                new EventFilter(status, from, to, upcoming, mine, page, size));
+        return ResponseEntity.ok()
+                .header(TOTAL_COUNT, String.valueOf(result.total()))
+                .body(result.events());
     }
 
     @GetMapping("/{id}")
