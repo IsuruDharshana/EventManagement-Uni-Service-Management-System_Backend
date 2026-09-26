@@ -56,6 +56,7 @@ Defaults (see `application.yml`) connect to `jdbc:mysql://localhost:3306/event_s
 | `JWT_ISSUER` / `JWT_AUDIENCE` | `university-identity-service` / `university-services-platform` | Required `iss` / `aud` of every token |
 | `GROUP5_MOCK` / `GROUP6_MOCK` | `true` | Toggle mock mode for the Group 5 (eligibility) / Group 6 (venue) HTTP clients |
 | `GROUP6_BASE_URL` | local placeholder | Real base URL of Group 6 |
+| `EVENTS_AUTO_COMPLETE_ENABLED` / `EVENTS_AUTO_COMPLETE_INTERVAL` | `true` / `PT5M` | Background job that marks published events COMPLETED once they have ended |
 
 **Authentication (Group 5).** Users log in on Group 5's Identity Service and send its token as `Authorization: Bearer <token>`. event-service checks the RS256 signature against Group 5's public keys, plus expiry, issuer and audience, and reads the user id from `sub` and the roles from `roles`. It never issues tokens itself, except the dev-only endpoint below.
 
@@ -83,7 +84,7 @@ Start the app with `SPRING_PROFILES_ACTIVE=dev,seed` to load sample events and r
 
 ## API testing (Postman)
 
-Import `docs/event-service.postman_collection.json`. It has 47 requests covering every endpoint and every error code, with assertions on each.
+Import `docs/event-service.postman_collection.json`. It has 56 requests covering every endpoint and every error code, with assertions on each.
 
 1. Start the app with `SPRING_PROFILES_ACTIVE=dev` (this enables `POST /api/dev/token?userId=usr-organizer-001&roles=EVENT_ORGANIZER`, which mints Group 5-shaped test tokens with a key generated at startup). Never enable `dev` on a shared deployment: anyone could mint an ADMIN token.
 2. Run the collection in order — folder 0 mints tokens, the rest use them. `baseUrl` defaults to `http://localhost:8081`.

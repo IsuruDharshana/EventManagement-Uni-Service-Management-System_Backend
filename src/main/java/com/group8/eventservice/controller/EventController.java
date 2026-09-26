@@ -130,4 +130,22 @@ public class EventController {
     public EventResponse cancelEvent(@PathVariable UUID id) {
         return eventService.cancelEvent(id);
     }
+
+    @PatchMapping("/{id}/complete")
+    @PreAuthorize(MANAGE_ROLES)
+    @Operation(summary = "Mark a published event as completed",
+            description = "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN. For events that finish early: "
+                    + "published events are also completed automatically once their end time passes. Feedback is only accepted for COMPLETED events.")
+    @ApiResponse(responseCode = "200", description = "Event is now COMPLETED")
+    @ApiResponse(responseCode = "400", description = "INVALID_STATE (only PUBLISHED events can be completed) or EVENT_NOT_STARTED",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "403", description = "FORBIDDEN: caller does not own the event",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND",
+            content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
+    public EventResponse completeEvent(@PathVariable UUID id) {
+        return eventService.completeEvent(id);
+    }
 }
