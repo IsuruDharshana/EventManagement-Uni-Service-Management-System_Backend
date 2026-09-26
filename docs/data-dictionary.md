@@ -51,7 +51,7 @@ erDiagram
 | status | VARCHAR(20) NOT NULL | see below |
 | created_at / updated_at | DATETIME(6) NOT NULL | set automatically |
 
-Indexes: `(status, schedule_start)`.
+Indexes: `(status, schedule_start)` for listing by status and date, `(status, schedule_end)` for the auto-complete job, `(organizer_id)` for "my events" and visibility.
 
 ## registrations
 
@@ -63,7 +63,7 @@ Indexes: `(status, schedule_start)`.
 | status | VARCHAR(20) NOT NULL | see below |
 | created_at / updated_at | DATETIME(6) NOT NULL | set automatically |
 
-Constraints and indexes: unique `(event_id, user_id)` stops a user registering twice; index `(event_id, status)` is used for capacity counts.
+Constraints and indexes: unique `(event_id, user_id)` stops a user registering twice; `(event_id, status)` is used for capacity counts and registrant lists; `(user_id)` for "my registrations".
 
 ## Status values
 
