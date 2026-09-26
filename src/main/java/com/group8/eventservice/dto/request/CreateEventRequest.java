@@ -15,7 +15,7 @@ import lombok.Setter;
 @Setter
 public class CreateEventRequest {
 
-    @Schema(example = "Innovation Week Workshop")
+    @Schema(example = "Innovation Week Workshop", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank
     @Size(max = 200)
     private String title;
@@ -43,7 +43,7 @@ public class CreateEventRequest {
     @Positive
     private Integer capacity;
 
-    @Schema(example = "{\"roles\": [\"STUDENT\"], \"departmentId\": \"dep-cs\"}",
+    @Schema(example = "{\"roles\": [\"STUDENT\"], \"departmentId\": \"dep-cs\"}", requiredMode = Schema.RequiredMode.REQUIRED,
             description = "JSON rule saying who may register. {\"all\": true} means everyone. Otherwise any of: "
                     + "roles (Group 5 role names, user needs one), departmentId / facultyId (Group 5 directory ids the user must belong to)")
     @NotBlank

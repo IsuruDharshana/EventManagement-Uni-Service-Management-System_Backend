@@ -36,7 +36,7 @@ public class RegistrationController {
             description = "Any signed-in user. Checks, in order: event is PUBLISHED, registration window is open, "
                     + "Group 5 eligibility (skipped for {\"all\": true} events), capacity.")
     @ApiResponse(responseCode = "201", description = "Registration CONFIRMED")
-    @ApiResponse(responseCode = "400", description = "EVENT_NOT_PUBLISHED or REGISTRATION_CLOSED",
+    @ApiResponse(responseCode = "400", description = "EVENT_NOT_PUBLISHED, REGISTRATION_CLOSED or INVALID_PARAMETER (eventId is not a UUID)",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
@@ -56,7 +56,7 @@ public class RegistrationController {
     @PatchMapping("/api/registrations/{id}/cancel")
     @Operation(summary = "Cancel the caller's own registration", description = "Not allowed once the event has started.")
     @ApiResponse(responseCode = "200", description = "Registration is now CANCELLED")
-    @ApiResponse(responseCode = "400", description = "INVALID_STATE (already cancelled) or CANCELLATION_CLOSED (event started)",
+    @ApiResponse(responseCode = "400", description = "INVALID_STATE (already cancelled), CANCELLATION_CLOSED (event started) or INVALID_PARAMETER (id is not a UUID)",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))

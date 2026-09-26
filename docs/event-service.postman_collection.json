@@ -2388,7 +2388,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error.code is INVALID_PARAMETER', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_PARAMETER'));"
                 ]
               }
             }

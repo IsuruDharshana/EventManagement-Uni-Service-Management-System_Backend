@@ -92,6 +92,14 @@ Schema is managed exclusively via Flyway migrations in `src/main/resources/db/mi
 
 Start the app with `SPRING_PROFILES_ACTIVE=dev,seed` to load sample events and registrations (see `docs/data-dictionary.md`). The seed is safe to re-run and is never loaded without the `seed` profile.
 
+## API contract (frozen)
+
+`docs/event-service-openapi.json` is the published contract for the frontend, communication-feedback-service and other groups (also live at `/v3/api-docs` and Swagger UI). `ApiContractTest` fails the build if the running API no longer matches it, so breaking changes can't slip in after the API freeze. After an intentional, agreed change, regenerate and commit the file:
+
+```bash
+mvn test -Dtest=ApiContractTest -Dcontract.update=true
+```
+
 ## API testing (Postman)
 
 Import `docs/event-service.postman_collection.json`. It has 60 requests covering every endpoint and every error code, with assertions on each.
