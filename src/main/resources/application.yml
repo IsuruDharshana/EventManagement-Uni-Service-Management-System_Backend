@@ -60,6 +60,11 @@ integrations:
   group5:
     mock: ${GROUP5_MOCK:true}
     base-url: ${GROUP5_BASE_URL:http://localhost:8001}
+  # communication-feedback-service (Group 8) notification trigger API, docs/notification-api-contract.yaml
+  notifications:
+    mock: ${NOTIFICATIONS_MOCK:true}
+    base-url: ${NOTIFICATIONS_BASE_URL:http://localhost:8082}
+    service-key: ${NOTIFICATIONS_SERVICE_KEY:}
   group6:
     mock: ${GROUP6_MOCK:true}
     base-url: ${GROUP6_BASE_URL:http://localhost:9002}

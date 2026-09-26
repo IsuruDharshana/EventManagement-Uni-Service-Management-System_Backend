@@ -17,6 +17,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +28,8 @@ import com.group8.eventservice.entity.EventStatus;
 import com.group8.eventservice.entity.Registration;
 import com.group8.eventservice.entity.RegistrationStatus;
 import com.group8.eventservice.exception.ApiException;
+import com.group8.eventservice.notification.NotificationRequest;
+import com.group8.eventservice.notification.NotificationsRequested;
 import com.group8.eventservice.repository.EventRepository;
 import com.group8.eventservice.repository.RegistrationRepository;
 
@@ -34,6 +38,7 @@ class RegistrationServiceTest {
     private EventRepository eventRepository;
     private RegistrationRepository registrationRepository;
     private Group5Client group5Client;
+    private ApplicationEventPublisher eventPublisher;
     private RegistrationService service;
     private String userId;
     private UUID eventId;
@@ -43,7 +48,8 @@ class RegistrationServiceTest {
         eventRepository = mock(EventRepository.class);
         registrationRepository = mock(RegistrationRepository.class);
         group5Client = mock(Group5Client.class);
-        service = new RegistrationService(eventRepository, registrationRepository, group5Client);
+        eventPublisher = mock(ApplicationEventPublisher.class);
+        service = new RegistrationService(eventRepository, registrationRepository, group5Client, eventPublisher);
 
         userId = "usr-student-001";
         eventId = UUID.randomUUID();
@@ -62,6 +68,7 @@ class RegistrationServiceTest {
         LocalDateTime now = LocalDateTime.now();
         return Event.builder()
                 .id(eventId)
+                .title("Innovation Week")
                 .status(EventStatus.PUBLISHED)
                 .capacity(2)
                 .scheduleStart(now.plusDays(7))
@@ -197,6 +204,24 @@ class RegistrationServiceTest {
         assertThat(response.status()).isEqualTo(RegistrationStatus.CONFIRMED);
         assertThat(response.eventId()).isEqualTo(eventId);
         assertThat(response.userId()).isEqualTo(userId);
+
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        NotificationRequest sent = ((NotificationsRequested) captor.getValue()).notifications().get(0);
+        assertThat(sent.recipientId()).isEqualTo(userId);
+        assertThat(sent.type()).isEqualTo("REGISTRATION_CONFIRMED");
+        assertThat(sent.message()).isEqualTo("You are registered for Innovation Week.");
+        assertThat(sent.idempotencyKey()).isEqualTo("REGISTRATION_CONFIRMED:" + response.id());
+    }
+
+    @Test
+    void rejectedRegistrationSendsNoNotification() {
+        when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(publishedEvent()));
+        when(group5Client.checkEligibility(eq(userId), any(), eq("caller-token"))).thenReturn(EligibilityResult.ineligible());
+
+        assertThatThrownBy(() -> service.register(eventId)).isInstanceOf(ApiException.class);
+
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test
@@ -245,5 +270,9 @@ class RegistrationServiceTest {
         var response = service.cancelRegistration(registration.getId());
 
         assertThat(response.status()).isEqualTo(RegistrationStatus.CANCELLED);
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(((NotificationsRequested) captor.getValue()).notifications().get(0).type())
+                .isEqualTo("REGISTRATION_CANCELLED");
     }
 }

@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,6 +34,7 @@ class RegistrationRulesTest {
     private EventRepository eventRepository;
     private RegistrationRepository registrationRepository;
     private Group5Client group5Client;
+    private ApplicationEventPublisher eventPublisher;
     private RegistrationService service;
     private String userId;
     private UUID eventId;
@@ -42,7 +44,8 @@ class RegistrationRulesTest {
         eventRepository = mock(EventRepository.class);
         registrationRepository = mock(RegistrationRepository.class);
         group5Client = mock(Group5Client.class);
-        service = new RegistrationService(eventRepository, registrationRepository, group5Client);
+        eventPublisher = mock(ApplicationEventPublisher.class);
+        service = new RegistrationService(eventRepository, registrationRepository, group5Client, eventPublisher);
         userId = "usr-student-001";
         eventId = UUID.randomUUID();
 

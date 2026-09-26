@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +26,7 @@ import com.group8.eventservice.entity.Event;
 import com.group8.eventservice.entity.EventStatus;
 import com.group8.eventservice.exception.ApiException;
 import com.group8.eventservice.repository.EventRepository;
+import com.group8.eventservice.repository.RegistrationRepository;
 
 class EventServicePublishTest {
 
@@ -37,7 +39,8 @@ class EventServicePublishTest {
     void setUp() {
         eventRepository = mock(EventRepository.class);
         group6Client = mock(Group6Client.class);
-        service = new EventService(eventRepository, group6Client);
+        service = new EventService(eventRepository, mock(RegistrationRepository.class), group6Client,
+                mock(ApplicationEventPublisher.class));
         eventId = UUID.randomUUID();
 
         var admin = new UsernamePasswordAuthenticationToken(

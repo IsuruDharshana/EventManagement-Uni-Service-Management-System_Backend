@@ -57,8 +57,13 @@ Defaults (see `application.yml`) connect to `jdbc:mysql://localhost:3306/event_s
 | `GROUP5_MOCK` / `GROUP6_MOCK` | `true` | Toggle mock mode for the Group 5 (eligibility) / Group 6 (venue) HTTP clients |
 | `GROUP6_BASE_URL` | local placeholder | Real base URL of Group 6 |
 | `EVENTS_AUTO_COMPLETE_ENABLED` / `EVENTS_AUTO_COMPLETE_INTERVAL` | `true` / `PT5M` | Background job that marks published events COMPLETED once they have ended |
+| `NOTIFICATIONS_MOCK` | `true` | When true, notifications are only logged |
+| `NOTIFICATIONS_BASE_URL` | `http://localhost:8082` | communication-feedback-service |
+| `NOTIFICATIONS_SERVICE_KEY` | empty | Shared `X-Service-Key` for the notification API (set it, never commit it) |
 
 **Authentication (Group 5).** Users log in on Group 5's Identity Service and send its token as `Authorization: Bearer <token>`. event-service checks the RS256 signature against Group 5's public keys, plus expiry, issuer and audience, and reads the user id from `sub` and the roles from `roles`. It never issues tokens itself, except the dev-only endpoint below.
+
+**Notifications.** After a change is saved, event-service asks communication-feedback-service (`POST /api/notifications/trigger`, see `docs/notification-api-contract.yaml`) to notify users: REGISTRATION_CONFIRMED / REGISTRATION_CANCELLED to the student, EVENT_CANCELLED to every confirmed registrant, and EVENT_UPDATED when a published event's date, time or venue changes. They are sent in the background after the database commit, each with an idempotency key, and a failure is only logged: it never undoes or slows down the user's action.
 
 **Group 5 eligibility check.** On registration, unless the event is `{"all": true}`, event-service calls `GET {GROUP5_BASE_URL}/api/v1/validation/users/{userId}/eligibility` with the user's own token. Set `GROUP5_MOCK=false` to use the real service. If Group 5 is down the registration fails with 503 and is never allowed. Rule format and roles: see `docs/data-dictionary.md`.
 

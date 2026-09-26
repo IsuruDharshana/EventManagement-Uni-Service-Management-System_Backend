@@ -124,7 +124,7 @@ components:
           enum: [event-service, reservation-service, service-request-service, communication-feedback-service]
         idempotencyKey:
           type: string
-          maxLength: 120
+          maxLength: 200
           description: Unique per real-world change, for example REGISTRATION_CONFIRMED:<registrationId>. A repeat call with the same key is harmless.
     Notification:
       type: object
