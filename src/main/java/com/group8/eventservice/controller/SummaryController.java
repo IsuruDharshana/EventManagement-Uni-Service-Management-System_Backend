@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "Summaries", description = "Participation numbers for organizers and admin staff")
+@Tag(name = "Summaries", description = "Participation numbers for organizers and administrators")
 public class SummaryController {
 
     private static final String ERR = "application/json";
@@ -29,9 +29,9 @@ public class SummaryController {
     private final SummaryService summaryService;
 
     @GetMapping("/api/events/{eventId}/registrations")
-    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN_STAFF')")
+    @PreAuthorize("hasAnyRole('EVENT_ORGANIZER', 'ACADEMIC_STAFF', 'ADMIN', 'ADMINISTRATIVE_STAFF')")
     @Operation(summary = "Registration and capacity summary for one event",
-            description = "Roles: the owning ORGANIZER or ADMIN_STAFF.")
+            description = "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN / ADMINISTRATIVE_STAFF.")
     @ApiResponse(responseCode = "200", description = "Confirmed and cancelled counts and remaining seats")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
@@ -44,12 +44,12 @@ public class SummaryController {
     }
 
     @GetMapping("/api/events/summary")
-    @PreAuthorize("hasRole('ADMIN_STAFF')")
-    @Operation(summary = "Overall event and registration totals", description = "Role: ADMIN_STAFF.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVE_STAFF')")
+    @Operation(summary = "Overall event and registration totals", description = "Roles: ADMIN, ADMINISTRATIVE_STAFF.")
     @ApiResponse(responseCode = "200", description = "Totals by event status and registration status")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
-    @ApiResponse(responseCode = "403", description = "FORBIDDEN: caller is not ADMIN_STAFF",
+    @ApiResponse(responseCode = "403", description = "FORBIDDEN: caller is not ADMIN or ADMINISTRATIVE_STAFF",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     public EventsOverview overview() {
         return summaryService.overview();

@@ -4,6 +4,6 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
-# No fallback here: a deployment without JWT_SECRET must fail to start, not run with a known key.
-jwt:
-  secret: ${JWT_SECRET}
+integrations:
+  group5:
+    base-url: ${GROUP5_BASE_URL:http://identity-service:8001}

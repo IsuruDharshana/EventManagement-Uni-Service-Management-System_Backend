@@ -33,13 +33,15 @@ public class RegistrationController {
 
     @PostMapping("/api/events/{eventId}/registrations")
     @Operation(summary = "Register the caller for an event",
-            description = "Checks, in order: event is PUBLISHED, registration window is open, Group 5 eligibility, capacity.")
+            description = "Any signed-in user. Checks, in order: event is PUBLISHED, registration window is open, "
+                    + "Group 5 eligibility (skipped for {\"all\": true} events), capacity.")
     @ApiResponse(responseCode = "201", description = "Registration CONFIRMED")
     @ApiResponse(responseCode = "400", description = "EVENT_NOT_PUBLISHED or REGISTRATION_CLOSED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
-    @ApiResponse(responseCode = "403", description = "NOT_ELIGIBLE: Group 5 says the caller is not eligible, or INVALID_USER: Group 5 does not know the caller",
+    @ApiResponse(responseCode = "403", description = "NOT_ELIGIBLE: Group 5 says the caller does not meet the event's eligibility rule (message explains why), "
+            + "or INVALID_USER: Group 5 does not know the caller or the account is inactive",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "404", description = "NOT_FOUND: event does not exist",
             content = @Content(mediaType = ERR, schema = @Schema(implementation = ApiErrorResponse.class)))

@@ -35,7 +35,7 @@ paths:
               registrationConfirmed:
                 summary: event-service, registration confirmed
                 value:
-                  recipientId: 33333333-3333-3333-3333-333333333333
+                  recipientId: usr-student-001
                   type: REGISTRATION_CONFIRMED
                   message: You are registered for Innovation Week Workshop
                   relatedType: REGISTRATION
@@ -45,13 +45,13 @@ paths:
               eventCancelled:
                 summary: event-service, event cancelled (one call per registered user)
                 value:
-                  recipientId: 33333333-3333-3333-3333-333333333333
+                  recipientId: usr-student-001
                   type: EVENT_CANCELLED
                   message: Innovation Week Workshop has been cancelled
                   relatedType: EVENT
                   relatedId: a0000000-0000-0000-0000-000000000001
                   sourceService: event-service
-                  idempotencyKey: EVENT_CANCELLED:a0000000-0000-0000-0000-000000000001:33333333-3333-3333-3333-333333333333
+                  idempotencyKey: EVENT_CANCELLED:a0000000-0000-0000-0000-000000000001:usr-student-001
       responses:
         '201':
           description: Notification created
@@ -96,8 +96,8 @@ components:
       properties:
         recipientId:
           type: string
-          format: uuid
-          description: Group 5 user id who should see the notification
+          maxLength: 64
+          description: Group 5 user id (token sub) who should see the notification, e.g. usr-student-001
         type:
           type: string
           enum:
@@ -130,7 +130,7 @@ components:
       type: object
       properties:
         id: {type: string, format: uuid}
-        recipientId: {type: string, format: uuid}
+        recipientId: {type: string, maxLength: 64}
         type: {type: string}
         message: {type: string}
         relatedType: {type: string}

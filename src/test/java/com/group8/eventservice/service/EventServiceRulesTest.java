@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -18,6 +20,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.group8.eventservice.dto.request.CreateEventRequest;
 import com.group8.eventservice.dto.request.UpdateEventRequest;
 import com.group8.eventservice.entity.Event;
 import com.group8.eventservice.entity.EventStatus;
@@ -30,14 +33,14 @@ class EventServiceRulesTest {
     private EventRepository eventRepository;
     private EventService service;
     private UUID eventId;
-    private UUID ownerId;
+    private String ownerId;
 
     @BeforeEach
     void setUp() {
         eventRepository = mock(EventRepository.class);
         service = new EventService(eventRepository, mock(Group6Client.class));
         eventId = UUID.randomUUID();
-        ownerId = UUID.randomUUID();
+        ownerId = "usr-organizer-001";
         when(eventRepository.saveAndFlush(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -46,9 +49,9 @@ class EventServiceRulesTest {
         SecurityContextHolder.clearContext();
     }
 
-    private void loginAs(UUID userId, String role) {
+    private void loginAs(String userId, String role) {
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                userId.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_" + role))));
+                userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))));
     }
 
     private Event event(EventStatus status) {
@@ -76,7 +79,7 @@ class EventServiceRulesTest {
     @Test
     void ownerCanUpdateOwnEvent() {
         event(EventStatus.DRAFT);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
         UpdateEventRequest request = new UpdateEventRequest();
         request.setTitle("Renamed");
 
@@ -84,9 +87,9 @@ class EventServiceRulesTest {
     }
 
     @Test
-    void adminStaffCanUpdateAnyEvent() {
+    void adminCanUpdateAnyEvent() {
         event(EventStatus.DRAFT);
-        loginAs(UUID.randomUUID(), "ADMIN_STAFF");
+        loginAs("usr-admin-001", "ADMIN");
         UpdateEventRequest request = new UpdateEventRequest();
         request.setCapacity(99);
 
@@ -96,7 +99,7 @@ class EventServiceRulesTest {
     @Test
     void anotherOrganizerCannotUpdate() {
         event(EventStatus.DRAFT);
-        loginAs(UUID.randomUUID(), "ORGANIZER");
+        loginAs("usr-organizer-002", "EVENT_ORGANIZER");
 
         assertThatThrownBy(() -> service.updateEvent(eventId, new UpdateEventRequest()))
                 .isInstanceOf(ApiException.class).extracting(EventServiceRulesTest::codeOf).isEqualTo("FORBIDDEN");
@@ -105,7 +108,7 @@ class EventServiceRulesTest {
     @Test
     void anotherOrganizerCannotPublishOrCancel() {
         event(EventStatus.DRAFT);
-        loginAs(UUID.randomUUID(), "ORGANIZER");
+        loginAs("usr-organizer-002", "EVENT_ORGANIZER");
 
         assertThatThrownBy(() -> service.publishEvent(eventId)).isInstanceOf(ApiException.class)
                 .extracting(EventServiceRulesTest::codeOf).isEqualTo("FORBIDDEN");
@@ -116,7 +119,7 @@ class EventServiceRulesTest {
     @Test
     void cannotPublishAnEventThatIsNotDraft() {
         event(EventStatus.PUBLISHED);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
 
         assertThatThrownBy(() -> service.publishEvent(eventId)).isInstanceOf(ApiException.class)
                 .extracting(EventServiceRulesTest::codeOf).isEqualTo("INVALID_STATE");
@@ -124,7 +127,7 @@ class EventServiceRulesTest {
 
     @Test
     void cannotCancelAnEventThatIsAlreadyCancelledOrCompleted() {
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
         for (EventStatus finished : List.of(EventStatus.CANCELLED, EventStatus.COMPLETED)) {
             event(finished);
             assertThatThrownBy(() -> service.cancelEvent(eventId)).isInstanceOf(ApiException.class)
@@ -135,7 +138,7 @@ class EventServiceRulesTest {
     @Test
     void publishedEventCanBeCancelled() {
         event(EventStatus.PUBLISHED);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
 
         assertThat(service.cancelEvent(eventId).status()).isEqualTo(EventStatus.CANCELLED);
     }
@@ -143,7 +146,7 @@ class EventServiceRulesTest {
     @Test
     void updateRejectsEndBeforeStart() {
         Event event = event(EventStatus.DRAFT);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
         UpdateEventRequest request = new UpdateEventRequest();
         request.setScheduleEnd(event.getScheduleStart().minusHours(1));
 
@@ -154,7 +157,7 @@ class EventServiceRulesTest {
     @Test
     void updateRejectsEndEqualToStart() {
         Event event = event(EventStatus.DRAFT);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
         UpdateEventRequest request = new UpdateEventRequest();
         request.setScheduleEnd(event.getScheduleStart());
 
@@ -165,7 +168,7 @@ class EventServiceRulesTest {
     @Test
     void updateRejectsRegistrationClosingAfterEventStarts() {
         Event event = event(EventStatus.DRAFT);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
         UpdateEventRequest request = new UpdateEventRequest();
         request.setRegistrationCloseAt(event.getScheduleStart().plusMinutes(1));
 
@@ -176,7 +179,7 @@ class EventServiceRulesTest {
     @Test
     void updateAllowsRegistrationClosingExactlyAtStart() {
         Event event = event(EventStatus.DRAFT);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
         UpdateEventRequest request = new UpdateEventRequest();
         request.setRegistrationCloseAt(event.getScheduleStart());
 
@@ -186,16 +189,75 @@ class EventServiceRulesTest {
     @Test
     void studentCannotSeeSomeoneElsesDraft() {
         event(EventStatus.DRAFT);
-        loginAs(UUID.randomUUID(), "STUDENT");
+        loginAs("usr-student-001", "STUDENT");
 
         assertThatThrownBy(() -> service.getEventDetail(eventId)).isInstanceOf(ApiException.class)
                 .extracting(EventServiceRulesTest::codeOf).isEqualTo("NOT_VISIBLE");
     }
 
     @Test
+    void academicStaffOwnerCanUpdateOwnEvent() {
+        event(EventStatus.DRAFT);
+        loginAs(ownerId, "ACADEMIC_STAFF");
+        UpdateEventRequest request = new UpdateEventRequest();
+        request.setTitle("Renamed");
+
+        assertThat(service.updateEvent(eventId, request).title()).isEqualTo("Renamed");
+    }
+
+    @Test
+    void administrativeStaffCanSeeDraftsButNotEditThem() {
+        event(EventStatus.DRAFT);
+        loginAs("usr-staff-001", "ADMINISTRATIVE_STAFF");
+
+        assertThat(service.getEventDetail(eventId).status()).isEqualTo(EventStatus.DRAFT);
+        assertThatThrownBy(() -> service.updateEvent(eventId, new UpdateEventRequest()))
+                .isInstanceOf(ApiException.class).extracting(EventServiceRulesTest::codeOf).isEqualTo("FORBIDDEN");
+    }
+
+    @Test
+    void updateRejectsAnInvalidEligibilityRule() {
+        event(EventStatus.DRAFT);
+        loginAs(ownerId, "EVENT_ORGANIZER");
+        UpdateEventRequest request = new UpdateEventRequest();
+        request.setEligibilityRule("{\"department\": \"Computing\"}");
+
+        assertThatThrownBy(() -> service.updateEvent(eventId, request)).isInstanceOf(ApiException.class)
+                .extracting(EventServiceRulesTest::codeOf).isEqualTo("INVALID_ELIGIBILITY_RULE");
+    }
+
+    @Test
+    void createRejectsAnInvalidEligibilityRuleAndSavesNothing() {
+        loginAs(ownerId, "EVENT_ORGANIZER");
+        CreateEventRequest request = new CreateEventRequest();
+        request.setTitle("Workshop");
+        request.setEligibilityRule("{}");
+
+        assertThatThrownBy(() -> service.createEvent(request)).isInstanceOf(ApiException.class)
+                .extracting(EventServiceRulesTest::codeOf).isEqualTo("INVALID_ELIGIBILITY_RULE");
+        verify(eventRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void createStoresTheCallerAsOrganizer() {
+        loginAs(ownerId, "ACADEMIC_STAFF");
+        LocalDateTime start = LocalDateTime.now().plusDays(7);
+        CreateEventRequest request = new CreateEventRequest();
+        request.setTitle("Workshop");
+        request.setScheduleStart(start);
+        request.setScheduleEnd(start.plusHours(2));
+        request.setCapacity(10);
+        request.setEligibilityRule("{\"roles\": [\"STUDENT\"], \"facultyId\": \"fac-sci\"}");
+        request.setRegistrationOpenAt(LocalDateTime.now());
+        request.setRegistrationCloseAt(start);
+
+        assertThat(service.createEvent(request).organizerId()).isEqualTo(ownerId);
+    }
+
+    @Test
     void studentCanSeePublishedEvent() {
         event(EventStatus.PUBLISHED);
-        loginAs(UUID.randomUUID(), "STUDENT");
+        loginAs("usr-student-001", "STUDENT");
 
         assertThat(service.getEventDetail(eventId).status()).isEqualTo(EventStatus.PUBLISHED);
     }

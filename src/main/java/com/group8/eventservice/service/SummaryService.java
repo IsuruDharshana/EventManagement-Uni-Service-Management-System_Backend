@@ -13,18 +13,16 @@ import com.group8.eventservice.entity.RegistrationStatus;
 import com.group8.eventservice.exception.ApiException;
 import com.group8.eventservice.repository.EventRepository;
 import com.group8.eventservice.repository.RegistrationRepository;
+import com.group8.eventservice.security.Roles;
 import com.group8.eventservice.security.SecurityUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
-/** Participation numbers for organizers and admin staff. */
+/** Participation numbers for organizers and administrators. */
 @Service
 @RequiredArgsConstructor
 public class SummaryService {
-
-    private static final String ADMIN_STAFF = "ADMIN_STAFF";
-    private static final String ORGANIZER = "ORGANIZER";
 
     private final EventRepository eventRepository;
     private final RegistrationRepository registrationRepository;
@@ -53,11 +51,12 @@ public class SummaryService {
                 registrationRepository.countByStatus(RegistrationStatus.CANCELLED));
     }
 
+    /** ADMIN and ADMINISTRATIVE_STAFF see any event; EVENT_ORGANIZER and ACADEMIC_STAFF only their own. */
     private void requireOwnerOrAdmin(Event event) {
-        if (SecurityUtils.currentUserHasRole(ADMIN_STAFF)) {
+        if (SecurityUtils.currentUserHasAnyRole(Roles.ADMIN, Roles.ADMINISTRATIVE_STAFF)) {
             return;
         }
-        if (SecurityUtils.currentUserHasRole(ORGANIZER) && event.getOrganizerId().equals(SecurityUtils.currentUserId())) {
+        if (SecurityUtils.currentUserHasAnyRole(Roles.EVENT_ORGANIZER, Roles.ACADEMIC_STAFF) && event.getOrganizerId().equals(SecurityUtils.currentUserId())) {
             return;
         }
         throw new ApiException("FORBIDDEN", "You do not own this event.", HttpStatus.FORBIDDEN);

@@ -31,7 +31,7 @@ class SummaryServiceTest {
     private RegistrationRepository registrationRepository;
     private SummaryService service;
     private UUID eventId;
-    private UUID ownerId;
+    private String ownerId;
 
     @BeforeEach
     void setUp() {
@@ -39,7 +39,7 @@ class SummaryServiceTest {
         registrationRepository = mock(RegistrationRepository.class);
         service = new SummaryService(eventRepository, registrationRepository);
         eventId = UUID.randomUUID();
-        ownerId = UUID.randomUUID();
+        ownerId = "usr-organizer-001";
     }
 
     @AfterEach
@@ -47,9 +47,9 @@ class SummaryServiceTest {
         SecurityContextHolder.clearContext();
     }
 
-    private void loginAs(UUID userId, String role) {
+    private void loginAs(String userId, String role) {
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                userId.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_" + role))));
+                userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))));
     }
 
     private void event(int capacity, long confirmed, long cancelled) {
@@ -63,7 +63,7 @@ class SummaryServiceTest {
     @Test
     void ownerSeesCountsAndRemainingSeats() {
         event(30, 12, 3);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
 
         var summary = service.summaryForEvent(eventId);
 
@@ -75,7 +75,7 @@ class SummaryServiceTest {
     @Test
     void fullEventHasZeroRemainingSeats() {
         event(2, 2, 0);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
 
         assertThat(service.summaryForEvent(eventId).remainingSeats()).isZero();
     }
@@ -83,7 +83,7 @@ class SummaryServiceTest {
     @Test
     void remainingSeatsNeverGoNegativeWhenCapacityWasLowered() {
         event(2, 5, 0);
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
 
         assertThat(service.summaryForEvent(eventId).remainingSeats()).isZero();
     }
@@ -91,7 +91,15 @@ class SummaryServiceTest {
     @Test
     void adminSeesAnyEvent() {
         event(10, 1, 0);
-        loginAs(UUID.randomUUID(), "ADMIN_STAFF");
+        loginAs("usr-admin-001", "ADMIN");
+
+        assertThat(service.summaryForEvent(eventId).confirmed()).isEqualTo(1);
+    }
+
+    @Test
+    void administrativeStaffSeesAnyEvent() {
+        event(10, 1, 0);
+        loginAs("usr-staff-001", "ADMINISTRATIVE_STAFF");
 
         assertThat(service.summaryForEvent(eventId).confirmed()).isEqualTo(1);
     }
@@ -99,7 +107,7 @@ class SummaryServiceTest {
     @Test
     void anotherOrganizerIsForbidden() {
         event(10, 1, 0);
-        loginAs(UUID.randomUUID(), "ORGANIZER");
+        loginAs("usr-organizer-002", "EVENT_ORGANIZER");
 
         assertThatThrownBy(() -> service.summaryForEvent(eventId)).isInstanceOf(ApiException.class)
                 .extracting(ex -> ((ApiException) ex).getCode()).isEqualTo("FORBIDDEN");
@@ -108,7 +116,7 @@ class SummaryServiceTest {
     @Test
     void unknownEventIsNotFound() {
         when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
-        loginAs(ownerId, "ORGANIZER");
+        loginAs(ownerId, "EVENT_ORGANIZER");
 
         assertThatThrownBy(() -> service.summaryForEvent(eventId)).isInstanceOf(EntityNotFoundException.class);
     }

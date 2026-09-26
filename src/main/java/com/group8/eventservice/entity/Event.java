@@ -42,9 +42,9 @@ public class Event {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @JdbcTypeCode(SqlTypes.CHAR)
-    @Column(name = "organizer_id", nullable = false, length = 36)
-    private UUID organizerId;
+    /** Group 5 user id (token {@code sub}), e.g. usr-organizer-001. */
+    @Column(name = "organizer_id", nullable = false, length = 64)
+    private String organizerId;
 
     @Column(length = 200)
     private String venue;
@@ -61,7 +61,7 @@ public class Event {
     @Column(nullable = false)
     private Integer capacity;
 
-    /** Free-form eligibility rule, e.g. {"faculty": "Engineering", "year": [2,3]}. */
+    /** Who may register, see {@link com.group8.eventservice.service.EligibilityRule}. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "eligibility_rule", nullable = false, columnDefinition = "json")
     private String eligibilityRule;

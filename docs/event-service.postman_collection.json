@@ -39,6 +39,10 @@
       "value": ""
     },
     {
+      "key": "staffToken",
+      "value": ""
+    },
+    {
       "key": "studentToken",
       "value": ""
     },
@@ -64,12 +68,12 @@
       "name": "0. Dev tokens (dev profile only)",
       "item": [
         {
-          "name": "Mint ORGANIZER token",
+          "name": "Mint EVENT_ORGANIZER token",
           "request": {
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/dev/token?userId=11111111-1111-1111-1111-111111111111&role=ORGANIZER",
+              "raw": "{{baseUrl}}/api/dev/token?userId=usr-organizer-001&roles=EVENT_ORGANIZER",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -81,15 +85,15 @@
               "query": [
                 {
                   "key": "userId",
-                  "value": "11111111-1111-1111-1111-111111111111"
+                  "value": "usr-organizer-001"
                 },
                 {
-                  "key": "role",
-                  "value": "ORGANIZER"
+                  "key": "roles",
+                  "value": "EVENT_ORGANIZER"
                 }
               ]
             },
-            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. On a real deployment, paste a real JWT into the token variable instead."
+            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. With the real Identity Service, log in on Group 5 (POST /api/v1/auth/login) and paste its access_token into the token variable instead."
           },
           "event": [
             {
@@ -105,12 +109,12 @@
           ]
         },
         {
-          "name": "Mint second ORGANIZER token",
+          "name": "Mint second EVENT_ORGANIZER token",
           "request": {
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/dev/token?userId=22222222-2222-2222-2222-222222222222&role=ORGANIZER",
+              "raw": "{{baseUrl}}/api/dev/token?userId=usr-organizer-002&roles=EVENT_ORGANIZER",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -122,15 +126,15 @@
               "query": [
                 {
                   "key": "userId",
-                  "value": "22222222-2222-2222-2222-222222222222"
+                  "value": "usr-organizer-002"
                 },
                 {
-                  "key": "role",
-                  "value": "ORGANIZER"
+                  "key": "roles",
+                  "value": "EVENT_ORGANIZER"
                 }
               ]
             },
-            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. On a real deployment, paste a real JWT into the token variable instead."
+            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. With the real Identity Service, log in on Group 5 (POST /api/v1/auth/login) and paste its access_token into the token variable instead."
           },
           "event": [
             {
@@ -146,12 +150,12 @@
           ]
         },
         {
-          "name": "Mint ADMIN_STAFF token",
+          "name": "Mint ADMIN token",
           "request": {
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/dev/token?userId=55555555-5555-5555-5555-555555555555&role=ADMIN_STAFF",
+              "raw": "{{baseUrl}}/api/dev/token?userId=usr-admin-001&roles=ADMIN",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -163,15 +167,15 @@
               "query": [
                 {
                   "key": "userId",
-                  "value": "55555555-5555-5555-5555-555555555555"
+                  "value": "usr-admin-001"
                 },
                 {
-                  "key": "role",
-                  "value": "ADMIN_STAFF"
+                  "key": "roles",
+                  "value": "ADMIN"
                 }
               ]
             },
-            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. On a real deployment, paste a real JWT into the token variable instead."
+            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. With the real Identity Service, log in on Group 5 (POST /api/v1/auth/login) and paste its access_token into the token variable instead."
           },
           "event": [
             {
@@ -187,12 +191,12 @@
           ]
         },
         {
-          "name": "Mint STUDENT token",
+          "name": "Mint ADMINISTRATIVE_STAFF token",
           "request": {
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/dev/token?userId=33333333-3333-3333-3333-333333333333&role=STUDENT",
+              "raw": "{{baseUrl}}/api/dev/token?userId=usr-staff-001&roles=ADMINISTRATIVE_STAFF",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -204,15 +208,56 @@
               "query": [
                 {
                   "key": "userId",
-                  "value": "33333333-3333-3333-3333-333333333333"
+                  "value": "usr-staff-001"
                 },
                 {
-                  "key": "role",
+                  "key": "roles",
+                  "value": "ADMINISTRATIVE_STAFF"
+                }
+              ]
+            },
+            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. With the real Identity Service, log in on Group 5 (POST /api/v1/auth/login) and paste its access_token into the token variable instead."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('staffToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mint STUDENT token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dev/token?userId=usr-student-001&roles=STUDENT",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dev",
+                "token"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "usr-student-001"
+                },
+                {
+                  "key": "roles",
                   "value": "STUDENT"
                 }
               ]
             },
-            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. On a real deployment, paste a real JWT into the token variable instead."
+            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. With the real Identity Service, log in on Group 5 (POST /api/v1/auth/login) and paste its access_token into the token variable instead."
           },
           "event": [
             {
@@ -233,7 +278,7 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/dev/token?userId=44444444-4444-4444-4444-444444444444&role=STUDENT",
+              "raw": "{{baseUrl}}/api/dev/token?userId=usr-student-002&roles=STUDENT",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -245,15 +290,15 @@
               "query": [
                 {
                   "key": "userId",
-                  "value": "44444444-4444-4444-4444-444444444444"
+                  "value": "usr-student-002"
                 },
                 {
-                  "key": "role",
+                  "key": "roles",
                   "value": "STUDENT"
                 }
               ]
             },
-            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. On a real deployment, paste a real JWT into the token variable instead."
+            "description": "Only exists when the app runs with SPRING_PROFILES_ACTIVE=dev. With the real Identity Service, log in on Group 5 (POST /api/v1/auth/login) and paste its access_token into the token variable instead."
           },
           "event": [
             {
@@ -300,7 +345,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -311,7 +356,7 @@
                 "exec": [
                   "pm.test('Status is 201', () => pm.response.to.have.status(201));",
                   "const b = pm.response.json();",
-                  "pm.test('created as DRAFT owned by caller', () => { pm.expect(b.status).to.eql('DRAFT'); pm.expect(b.organizerId).to.eql('11111111-1111-1111-1111-111111111111'); });",
+                  "pm.test('created as DRAFT owned by caller', () => { pm.expect(b.status).to.eql('DRAFT'); pm.expect(b.organizerId).to.eql('usr-organizer-001'); });",
                   "pm.collectionVariables.set('eventId', b.id);"
                 ]
               }
@@ -345,7 +390,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -388,7 +433,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"2020-01-01T00:00:00\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"2020-01-01T00:00:00\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -431,7 +476,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -442,6 +487,135 @@
                 "exec": [
                   "pm.test('Status is 403', () => pm.response.to.have.status(403));",
                   "pm.test('error.code is FORBIDDEN', () => pm.expect(pm.response.json().error.code).to.eql('FORBIDDEN'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create event - administrative staff -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('error.code is FORBIDDEN', () => pm.expect(pm.response.json().error.code).to.eql('FORBIDDEN'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create event - old department-name rule -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"department\\\": \\\"Computing\\\"}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error.code is INVALID_ELIGIBILITY_RULE', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_ELIGIBILITY_RULE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create event - Group 5 rule (CS students)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"CS Students Only\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"roles\\\": [\\\"STUDENT\\\"], \\\"departmentId\\\": \\\"dep-cs\\\"}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('rule stored as sent', () => pm.expect(JSON.parse(pm.response.json().eligibilityRule).departmentId).to.eql('dep-cs'));"
                 ]
               }
             }
@@ -470,7 +644,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Postman Event\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -1191,7 +1365,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Capacity One\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 1,\n  \"eligibilityRule\": \"{\\\"all\\\":true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"Capacity One\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 1,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -1537,6 +1711,41 @@
                   "pm.test('Status is 200', () => pm.response.to.have.status(200));",
                   "const b = pm.response.json();",
                   "pm.test('totals add up', () => pm.expect(b.totalEvents).to.eql(b.draft + b.published + b.cancelled + b.completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Overview as administrative staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "summary"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
                 ]
               }
             }

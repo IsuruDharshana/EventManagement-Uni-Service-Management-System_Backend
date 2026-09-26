@@ -31,7 +31,7 @@ services:
       DB_URL: jdbc:mysql://mysql:3306/event_service_db
       DB_USERNAME: group8
       DB_PASSWORD: group8
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-min-32-chars}
+      GROUP5_BASE_URL: ${GROUP5_BASE_URL:-http://identity-service:8001}
       SERVER_PORT: 8081
     ports:
       - "8081:8081"

@@ -14,6 +14,7 @@ import com.group8.eventservice.entity.Event;
 import com.group8.eventservice.entity.EventStatus;
 import com.group8.eventservice.exception.ApiException;
 import com.group8.eventservice.repository.EventRepository;
+import com.group8.eventservice.security.Roles;
 import com.group8.eventservice.security.SecurityUtils;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -23,14 +24,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EventService {
 
-    private static final String ADMIN_STAFF = "ADMIN_STAFF";
-    private static final String ORGANIZER = "ORGANIZER";
-
     private final EventRepository eventRepository;
     private final Group6Client group6Client;
 
     @Transactional
     public EventResponse createEvent(CreateEventRequest request) {
+        requireValidEligibilityRule(request.getEligibilityRule());
+
         Event event = Event.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -50,7 +50,7 @@ public class EventService {
     }
 
     public List<EventResponse> listVisibleEvents() {
-        List<Event> events = SecurityUtils.currentUserHasRole(ADMIN_STAFF)
+        List<Event> events = canSeeAllEvents()
                 ? eventRepository.findAll()
                 : eventRepository.findAll().stream()
                         .filter(this::isVisibleToNonAdmin)
@@ -62,7 +62,7 @@ public class EventService {
     public EventResponse getEventDetail(UUID id) {
         Event event = findOrThrow(id);
 
-        if (!SecurityUtils.currentUserHasRole(ADMIN_STAFF) && !isVisibleToNonAdmin(event)) {
+        if (!canSeeAllEvents() && !isVisibleToNonAdmin(event)) {
             throw new ApiException("NOT_VISIBLE", "You do not have access to this event.", HttpStatus.FORBIDDEN);
         }
 
@@ -96,6 +96,7 @@ public class EventService {
             event.setCapacity(request.getCapacity());
         }
         if (request.getEligibilityRule() != null) {
+            requireValidEligibilityRule(request.getEligibilityRule());
             event.setEligibilityRule(request.getEligibilityRule());
         }
         if (request.getRegistrationOpenAt() != null) {
@@ -159,14 +160,28 @@ public class EventService {
                 .orElseThrow(() -> new EntityNotFoundException("Event " + id + " not found"));
     }
 
+    /** ADMIN can manage any event; EVENT_ORGANIZER and ACADEMIC_STAFF only their own. */
     private void requireOwnerOrAdmin(Event event) {
-        if (SecurityUtils.currentUserHasRole(ADMIN_STAFF)) {
+        if (SecurityUtils.currentUserHasRole(Roles.ADMIN)) {
             return;
         }
-        if (SecurityUtils.currentUserHasRole(ORGANIZER) && event.getOrganizerId().equals(SecurityUtils.currentUserId())) {
+        if (SecurityUtils.currentUserHasAnyRole(Roles.EVENT_ORGANIZER, Roles.ACADEMIC_STAFF)
+                && event.getOrganizerId().equals(SecurityUtils.currentUserId())) {
             return;
         }
         throw new ApiException("FORBIDDEN", "You do not own this event.", HttpStatus.FORBIDDEN);
+    }
+
+    private static boolean canSeeAllEvents() {
+        return SecurityUtils.currentUserHasAnyRole(Roles.ADMIN, Roles.ADMINISTRATIVE_STAFF);
+    }
+
+    private static void requireValidEligibilityRule(String rule) {
+        try {
+            EligibilityRule.parse(rule);
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException("INVALID_ELIGIBILITY_RULE", ex.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     private boolean isVisibleToNonAdmin(Event event) {

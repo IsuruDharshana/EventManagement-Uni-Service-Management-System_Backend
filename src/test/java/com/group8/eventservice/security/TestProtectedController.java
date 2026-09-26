@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestProtectedController {
 
     @GetMapping("/api/test/organizer-only")
-    @PreAuthorize("hasRole('ORGANIZER')")
+    @PreAuthorize("hasRole('EVENT_ORGANIZER')")
     public String organizerOnly() {
         return "ok";
     }

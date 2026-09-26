@@ -21,7 +21,9 @@ import com.group8.eventservice.security.SecurityUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RegistrationService {
@@ -32,7 +34,7 @@ public class RegistrationService {
 
     @Transactional
     public RegistrationResponse register(UUID eventId) {
-        UUID userId = SecurityUtils.currentUserId();
+        String userId = SecurityUtils.currentUserId();
 
         // Locks the event row so a concurrent registration for the same event can't also
         // pass the capacity check before this transaction commits (DV8-01).
@@ -48,7 +50,8 @@ public class RegistrationService {
             throw new ApiException("REGISTRATION_CLOSED", "Registration is not currently open for this event.", HttpStatus.BAD_REQUEST);
         }
 
-        EligibilityResult eligibility = group5Client.checkEligibility(userId, eventId);
+        EligibilityResult eligibility = group5Client.checkEligibility(userId, eligibilityRuleOf(event),
+                SecurityUtils.currentBearerToken());
         if (!eligibility.isAvailable()) {
             throw new ApiException("GROUP5_UNAVAILABLE",
                     "Eligibility check is temporarily unavailable. Please try again shortly.", HttpStatus.SERVICE_UNAVAILABLE);
@@ -57,7 +60,9 @@ public class RegistrationService {
             throw new ApiException("INVALID_USER", "Your account could not be verified.", HttpStatus.FORBIDDEN);
         }
         if (!eligibility.isEligible()) {
-            throw new ApiException("NOT_ELIGIBLE", "You are not eligible to register for this event.", HttpStatus.FORBIDDEN);
+            String message = eligibility.message() != null
+                    ? eligibility.message() : "You are not eligible to register for this event.";
+            throw new ApiException("NOT_ELIGIBLE", message, HttpStatus.FORBIDDEN);
         }
 
         long confirmedCount = registrationRepository.countByEvent_IdAndStatus(eventId, RegistrationStatus.CONFIRMED);
@@ -74,6 +79,18 @@ public class RegistrationService {
             return RegistrationResponse.from(registrationRepository.saveAndFlush(registration));
         } catch (DataIntegrityViolationException ex) {
             throw new ApiException("ALREADY_REGISTERED", "You have already registered for this event.", HttpStatus.CONFLICT);
+        }
+    }
+
+    /** A rule that no longer parses (e.g. saved before the Group 5 format) admits nobody rather than everybody. */
+    private EligibilityRule eligibilityRuleOf(Event event) {
+        try {
+            return EligibilityRule.parse(event.getEligibilityRule());
+        } catch (IllegalArgumentException ex) {
+            log.warn("Event {} has an invalid eligibility rule: {}", event.getId(), ex.getMessage());
+            throw new ApiException("NOT_ELIGIBLE",
+                    "This event's eligibility rule is invalid, so registration is closed. Please contact the organizer.",
+                    HttpStatus.FORBIDDEN);
         }
     }
 
