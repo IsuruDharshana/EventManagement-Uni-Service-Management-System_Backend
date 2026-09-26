@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -33,7 +35,7 @@ class RegistrationServiceTest {
     private RegistrationRepository registrationRepository;
     private Group5Client group5Client;
     private RegistrationService service;
-    private UUID userId;
+    private String userId;
     private UUID eventId;
 
     @BeforeEach
@@ -43,11 +45,11 @@ class RegistrationServiceTest {
         group5Client = mock(Group5Client.class);
         service = new RegistrationService(eventRepository, registrationRepository, group5Client);
 
-        userId = UUID.randomUUID();
+        userId = "usr-student-001";
         eventId = UUID.randomUUID();
 
         var auth = new UsernamePasswordAuthenticationToken(
-                userId.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")));
+                userId, "caller-token", List.of(new SimpleGrantedAuthority("ROLE_STUDENT")));
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
@@ -66,6 +68,7 @@ class RegistrationServiceTest {
                 .scheduleEnd(now.plusDays(7).plusHours(2))
                 .registrationOpenAt(now.minusDays(1))
                 .registrationCloseAt(now.plusDays(1))
+                .eligibilityRule("{\"roles\": [\"STUDENT\"], \"departmentId\": \"dep-cs\"}")
                 .build();
     }
 
@@ -96,7 +99,7 @@ class RegistrationServiceTest {
     @Test
     void rejectsRegistrationWhenGroup5IsUnavailable() {
         when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(publishedEvent()));
-        when(group5Client.checkEligibility(userId, eventId)).thenReturn(EligibilityResult.unavailable());
+        when(group5Client.checkEligibility(eq(userId), any(), eq("caller-token"))).thenReturn(EligibilityResult.unavailable());
 
         assertThatThrownBy(() -> service.register(eventId))
                 .isInstanceOf(ApiException.class)
@@ -107,7 +110,7 @@ class RegistrationServiceTest {
     @Test
     void rejectsRegistrationWhenGroup5DoesNotKnowTheUser() {
         when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(publishedEvent()));
-        when(group5Client.checkEligibility(userId, eventId)).thenReturn(EligibilityResult.invalidUser());
+        when(group5Client.checkEligibility(eq(userId), any(), eq("caller-token"))).thenReturn(EligibilityResult.invalidUser());
 
         assertThatThrownBy(() -> service.register(eventId))
                 .isInstanceOf(ApiException.class)
@@ -118,7 +121,7 @@ class RegistrationServiceTest {
     @Test
     void rejectsRegistrationWhenIneligible() {
         when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(publishedEvent()));
-        when(group5Client.checkEligibility(userId, eventId)).thenReturn(EligibilityResult.ineligible());
+        when(group5Client.checkEligibility(eq(userId), any(), eq("caller-token"))).thenReturn(EligibilityResult.ineligible());
 
         assertThatThrownBy(() -> service.register(eventId))
                 .isInstanceOf(ApiException.class)
@@ -127,10 +130,45 @@ class RegistrationServiceTest {
     }
 
     @Test
+    void notEligibleShowsGroup5sReason() {
+        when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(publishedEvent()));
+        when(group5Client.checkEligibility(eq(userId), any(), eq("caller-token")))
+                .thenReturn(EligibilityResult.ineligible("User is not affiliated with the requested department/faculty."));
+
+        assertThatThrownBy(() -> service.register(eventId))
+                .isInstanceOf(ApiException.class)
+                .hasMessage("User is not affiliated with the requested department/faculty.");
+    }
+
+    @Test
+    void sendsTheEventsRuleAndCallerTokenToGroup5() {
+        when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(publishedEvent()));
+        when(group5Client.checkEligibility(eq(userId), any(), eq("caller-token"))).thenReturn(EligibilityResult.ineligible());
+
+        assertThatThrownBy(() -> service.register(eventId)).isInstanceOf(ApiException.class);
+
+        verify(group5Client).checkEligibility(userId,
+                new EligibilityRule(false, List.of("STUDENT"), "dep-cs", null), "caller-token");
+    }
+
+    @Test
+    void eventWithAnInvalidStoredRuleAdmitsNobody() {
+        Event event = publishedEvent();
+        event.setEligibilityRule("{\"department\": \"Computing\"}");
+        when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(event));
+
+        assertThatThrownBy(() -> service.register(eventId))
+                .isInstanceOf(ApiException.class)
+                .extracting(ex -> ((ApiException) ex).getCode())
+                .isEqualTo("NOT_ELIGIBLE");
+        verify(group5Client, never()).checkEligibility(any(), any(), any());
+    }
+
+    @Test
     void rejectsRegistrationWhenCapacityReached() {
         Event event = publishedEvent();
         when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(event));
-        when(group5Client.checkEligibility(userId, eventId)).thenReturn(EligibilityResult.eligible());
+        when(group5Client.checkEligibility(eq(userId), any(), eq("caller-token"))).thenReturn(EligibilityResult.eligible());
         when(registrationRepository.countByEvent_IdAndStatus(eventId, RegistrationStatus.CONFIRMED))
                 .thenReturn((long) event.getCapacity());
 
@@ -144,7 +182,7 @@ class RegistrationServiceTest {
     void succeedsWhenEligibleAndCapacityAvailable() {
         Event event = publishedEvent();
         when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(event));
-        when(group5Client.checkEligibility(userId, eventId)).thenReturn(EligibilityResult.eligible());
+        when(group5Client.checkEligibility(eq(userId), any(), eq("caller-token"))).thenReturn(EligibilityResult.eligible());
         when(registrationRepository.countByEvent_IdAndStatus(eventId, RegistrationStatus.CONFIRMED)).thenReturn(0L);
         when(registrationRepository.saveAndFlush(any(Registration.class))).thenAnswer(inv -> {
             Registration r = inv.getArgument(0);
@@ -166,7 +204,7 @@ class RegistrationServiceTest {
         Registration registration = Registration.builder()
                 .id(UUID.randomUUID())
                 .event(publishedEvent())
-                .userId(UUID.randomUUID())
+                .userId("usr-student-999")
                 .status(RegistrationStatus.CONFIRMED)
                 .build();
         when(registrationRepository.findById(registration.getId())).thenReturn(Optional.of(registration));

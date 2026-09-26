@@ -10,7 +10,7 @@ public record EventResponse(
         UUID id,
         String title,
         String description,
-        UUID organizerId,
+        String organizerId,
         String venue,
         boolean online,
         LocalDateTime scheduleStart,

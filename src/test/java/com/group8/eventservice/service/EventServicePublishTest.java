@@ -41,7 +41,7 @@ class EventServicePublishTest {
         eventId = UUID.randomUUID();
 
         var admin = new UsernamePasswordAuthenticationToken(
-                UUID.randomUUID().toString(), null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN_STAFF")));
+                "usr-admin-001", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
         SecurityContextHolder.getContext().setAuthentication(admin);
 
         when(eventRepository.saveAndFlush(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -58,7 +58,7 @@ class EventServicePublishTest {
                 .status(EventStatus.DRAFT)
                 .online(online)
                 .venue(venue)
-                .organizerId(UUID.randomUUID())
+                .organizerId("usr-organizer-001")
                 .scheduleStart(LocalDateTime.now().plusDays(7))
                 .scheduleEnd(LocalDateTime.now().plusDays(7).plusHours(2))
                 .build();

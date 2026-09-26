@@ -9,7 +9,7 @@ import com.group8.eventservice.entity.RegistrationStatus;
 public record RegistrationResponse(
         UUID id,
         UUID eventId,
-        UUID userId,
+        String userId,
         RegistrationStatus status,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {

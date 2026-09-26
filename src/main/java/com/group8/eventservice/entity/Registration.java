@@ -44,9 +44,9 @@ public class Registration {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @JdbcTypeCode(SqlTypes.CHAR)
-    @Column(name = "user_id", nullable = false, length = 36)
-    private UUID userId;
+    /** Group 5 user id (token {@code sub}), e.g. usr-student-001. */
+    @Column(name = "user_id", nullable = false, length = 64)
+    private String userId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

@@ -26,6 +26,9 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    # A database that once ran the demo seed (seed profile) must still start without it.
+    # Versioned migrations are still fully validated.
+    ignore-migration-patterns: "*:future,repeatable:missing"
 
 management:
   endpoints:
@@ -42,14 +45,16 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+# Access tokens are issued by Group 5 (Identity Service): RS256, checked against Group 5's public keys.
 jwt:
-  secret: ${JWT_SECRET:local-dev-secret-key-change-me-min-32-chars}
-  expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+  jwks-uri: ${JWT_JWKS_URI:${integrations.group5.base-url}/.well-known/jwks.json}
+  issuer: ${JWT_ISSUER:university-identity-service}
+  audience: ${JWT_AUDIENCE:university-services-platform}
 
 integrations:
   group5:
     mock: ${GROUP5_MOCK:true}
-    base-url: ${GROUP5_BASE_URL:http://localhost:9001}
+    base-url: ${GROUP5_BASE_URL:http://localhost:8001}
   group6:
     mock: ${GROUP6_MOCK:true}
     base-url: ${GROUP6_BASE_URL:http://localhost:9002}

@@ -3,6 +3,7 @@ package com.group8.eventservice.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,7 +34,7 @@ class RegistrationRulesTest {
     private RegistrationRepository registrationRepository;
     private Group5Client group5Client;
     private RegistrationService service;
-    private UUID userId;
+    private String userId;
     private UUID eventId;
 
     @BeforeEach
@@ -42,13 +43,13 @@ class RegistrationRulesTest {
         registrationRepository = mock(RegistrationRepository.class);
         group5Client = mock(Group5Client.class);
         service = new RegistrationService(eventRepository, registrationRepository, group5Client);
-        userId = UUID.randomUUID();
+        userId = "usr-student-001";
         eventId = UUID.randomUUID();
 
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                userId.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))));
+                userId, "caller-token", List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))));
 
-        when(group5Client.checkEligibility(userId, eventId)).thenReturn(EligibilityResult.eligible());
+        when(group5Client.checkEligibility(eq(userId), any(), any())).thenReturn(EligibilityResult.eligible());
         when(registrationRepository.countByEvent_IdAndStatus(eventId, RegistrationStatus.CONFIRMED)).thenReturn(0L);
         when(registrationRepository.saveAndFlush(any(Registration.class))).thenAnswer(inv -> {
             Registration r = inv.getArgument(0);
@@ -71,6 +72,7 @@ class RegistrationRulesTest {
                 .scheduleEnd(LocalDateTime.now().plusDays(7).plusHours(2))
                 .registrationOpenAt(opensAt)
                 .registrationCloseAt(closesAt)
+                .eligibilityRule("{\"all\": true}")
                 .build();
         when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(event));
     }
