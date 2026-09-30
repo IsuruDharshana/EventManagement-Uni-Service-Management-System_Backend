@@ -66,6 +66,19 @@ public class OpenApiConfig {
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME));
     }
 
+    /**
+     * Every endpoint is served under /api/... and /api/v1/... (the API Gateway's form). Keep the
+     * original operationIds on /api/... so generated clients don't change, and suffix the /api/v1
+     * copies with "V1" (springdoc would otherwise number duplicates in no fixed order).
+     */
+    @Bean
+    public OpenApiCustomizer stableOperationIds() {
+        return openApi -> openApi.getPaths().forEach((path, item) -> item.readOperations().forEach(operation -> {
+            String base = operation.getOperationId().replaceAll("_\\d+$", "");
+            operation.setOperationId(path.startsWith("/api/v1/") ? base + "V1" : base);
+        }));
+    }
+
     /** Any endpoint can fail unexpectedly; document the (detail-free) 500 shape on all of them. */
     @Bean
     public OpenApiCustomizer internalErrorResponse() {

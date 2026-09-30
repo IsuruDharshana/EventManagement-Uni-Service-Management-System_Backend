@@ -38,6 +38,7 @@ class JwtVerificationTest {
 
     private static final String ISSUER = "university-identity-service";
     private static final String AUDIENCE = "university-services-platform";
+    private static final Duration TIMEOUT = Duration.ofSeconds(2);
 
     private HttpServer group5;
     private RSAKey group5Key;
@@ -57,7 +58,7 @@ class JwtVerificationTest {
         });
         group5.start();
 
-        decoder = new JwtConfig().jwtDecoder(jwksUri(), ISSUER, AUDIENCE, Optional.empty());
+        decoder = new JwtConfig().jwtDecoder(jwksUri(), ISSUER, AUDIENCE, TIMEOUT, TIMEOUT, Optional.empty());
     }
 
     @AfterEach
@@ -109,6 +110,14 @@ class JwtVerificationTest {
     }
 
     @Test
+    void keepsUsingCachedKeysWhileGroup5IsAsleep() {
+        decoder.decode(group5Token());
+        group5.stop(0);
+
+        assertThat(decoder.decode(group5Token()).getSubject()).isEqualTo("usr-student-001");
+    }
+
+    @Test
     void rejectsWrongIssuer() {
         String token = sign(group5Key, "someone-else", AUDIENCE, Instant.now().plus(Duration.ofHours(1)));
         assertThatThrownBy(() -> decoder.decode(token)).isInstanceOf(JwtException.class);
@@ -142,7 +151,7 @@ class JwtVerificationTest {
     @Test
     void rejectsEverythingWhenGroup5KeysCannotBeFetched() {
         JwtDecoder offline = new JwtConfig().jwtDecoder("http://localhost:1/.well-known/jwks.json",
-                ISSUER, AUDIENCE, Optional.empty());
+                ISSUER, AUDIENCE, TIMEOUT, TIMEOUT, Optional.empty());
         assertThatThrownBy(() -> offline.decode(group5Token())).isInstanceOf(JwtException.class);
     }
 
@@ -153,7 +162,7 @@ class JwtVerificationTest {
 
         assertThatThrownBy(() -> decoder.decode(devToken)).isInstanceOf(JwtException.class);
 
-        JwtDecoder devDecoder = new JwtConfig().jwtDecoder(jwksUri(), ISSUER, AUDIENCE, Optional.of(devIssuer));
+        JwtDecoder devDecoder = new JwtConfig().jwtDecoder(jwksUri(), ISSUER, AUDIENCE, TIMEOUT, TIMEOUT, Optional.of(devIssuer));
         assertThat(devDecoder.decode(devToken).getClaimAsStringList("roles")).containsExactly("EVENT_ORGANIZER");
         assertThat(devDecoder.decode(group5Token()).getSubject()).isEqualTo("usr-student-001");
     }

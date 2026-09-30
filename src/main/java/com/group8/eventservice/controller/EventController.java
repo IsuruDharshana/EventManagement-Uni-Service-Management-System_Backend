@@ -36,7 +36,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/events")
+@RequestMapping({"/api/events", "/api/v1/events"})
 @RequiredArgsConstructor
 @Tag(name = "Events", description = "Create, edit, publish, cancel and view events")
 public class EventController {
@@ -50,7 +50,7 @@ public class EventController {
     @PostMapping
     @PreAuthorize(MANAGE_ROLES)
     @Operation(summary = "Create a draft event", description = "Roles: EVENT_ORGANIZER, ACADEMIC_STAFF, ADMIN. The caller becomes the event's organizer. "
-                    + "eligibilityRule is {\"all\": true} or Group 5 criteria such as {\"roles\": [\"STUDENT\"], \"departmentId\": \"dep-cs\"}.")
+                    + "eligibilityRule is {\"all\": true} or Group 5 criteria such as {\"roles\": [\"STUDENT\"], \"departmentId\": \"CS\"}.")
     @ApiResponse(responseCode = "201", description = "Event created in DRAFT status")
     @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: invalid or missing fields, scheduleEnd not after scheduleStart, or registrationCloseAt after scheduleStart. "
             + "INVALID_ELIGIBILITY_RULE: eligibilityRule is not in the supported format. MALFORMED_REQUEST: body is not valid JSON",

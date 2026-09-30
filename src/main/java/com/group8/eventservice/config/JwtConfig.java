@@ -1,10 +1,12 @@
 package com.group8.eventservice.config;
 
 import java.text.ParseException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.concurrent.ConcurrentMapCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -36,10 +38,17 @@ public class JwtConfig {
     public JwtDecoder jwtDecoder(@Value("${jwt.jwks-uri}") String jwksUri,
                                  @Value("${jwt.issuer}") String issuer,
                                  @Value("${jwt.audience}") String audience,
+                                 @Value("${integrations.group5.connect-timeout:PT10S}") Duration connectTimeout,
+                                 @Value("${integrations.group5.read-timeout:PT60S}") Duration readTimeout,
                                  Optional<DevTokenIssuer> devTokenIssuer) {
         OAuth2TokenValidator<Jwt> validator = claimValidator(issuer, audience);
 
-        NimbusJwtDecoder group5 = NimbusJwtDecoder.withJwkSetUri(jwksUri).restOperations(jwksClient()).build();
+        // Keys are cached until a token arrives with an unknown kid (then re-fetched), as Group 5 asks.
+        // This also means Group 5's slow first answer after sleeping only hits the first request.
+        NimbusJwtDecoder group5 = NimbusJwtDecoder.withJwkSetUri(jwksUri)
+                .restOperations(jwksClient(connectTimeout, readTimeout))
+                .cache(new ConcurrentMapCache("group5-jwks"))
+                .build();
         group5.setJwtValidator(validator);
 
         if (devTokenIssuer.isEmpty()) {
@@ -57,10 +66,10 @@ public class JwtConfig {
         return new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(issuer), audienceValidator);
     }
 
-    private static RestTemplate jwksClient() {
+    private static RestTemplate jwksClient(Duration connectTimeout, Duration readTimeout) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(3_000);
-        factory.setReadTimeout(5_000);
+        factory.setConnectTimeout(connectTimeout);
+        factory.setReadTimeout(readTimeout);
         return new RestTemplate(factory);
     }
 

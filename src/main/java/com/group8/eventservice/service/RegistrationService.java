@@ -9,6 +9,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
 
 import com.group8.eventservice.dto.response.RegistrationResponse;
 import com.group8.eventservice.entity.Event;
@@ -34,25 +35,58 @@ public class RegistrationService {
     private final RegistrationRepository registrationRepository;
     private final Group5Client group5Client;
     private final ApplicationEventPublisher eventPublisher;
+    private final TransactionOperations transactions;
 
-    @Transactional
+    /**
+     * Registers the caller. The Group 5 eligibility call can take up to a minute when Group 5 has
+     * been idle, so it runs first, with no lock held. The capacity check and insert then run in a
+     * short transaction that locks the event row, so two requests can't take the last seat (DV8-01);
+     * status and window are checked again under the lock in case the event changed meanwhile.
+     */
     public RegistrationResponse register(UUID eventId) {
         String userId = SecurityUtils.currentUserId();
 
-        // Locks the event row so a concurrent registration for the same event can't also
-        // pass the capacity check before this transaction commits (DV8-01).
-        Event event = eventRepository.findByIdForUpdate(eventId)
+        Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event " + eventId + " not found"));
+        requireOpenForRegistration(event);
+        requireEligible(userId, event);
 
+        return transactions.execute(status -> {
+            Event locked = eventRepository.findByIdForUpdate(eventId)
+                    .orElseThrow(() -> new EntityNotFoundException("Event " + eventId + " not found"));
+            requireOpenForRegistration(locked);
+
+            long confirmedCount = registrationRepository.countByEvent_IdAndStatus(eventId, RegistrationStatus.CONFIRMED);
+            if (confirmedCount >= locked.getCapacity()) {
+                throw new ApiException("CAPACITY_REACHED", "This event has reached its registration capacity.", HttpStatus.CONFLICT);
+            }
+
+            try {
+                Registration registration = Registration.builder()
+                        .event(locked)
+                        .userId(userId)
+                        .status(RegistrationStatus.CONFIRMED)
+                        .build();
+                Registration saved = registrationRepository.saveAndFlush(registration);
+                eventPublisher.publishEvent(Notifications.registrationConfirmed(saved));
+                return RegistrationResponse.from(saved);
+            } catch (DataIntegrityViolationException ex) {
+                throw new ApiException("ALREADY_REGISTERED", "You have already registered for this event.", HttpStatus.CONFLICT);
+            }
+        });
+    }
+
+    private static void requireOpenForRegistration(Event event) {
         if (event.getStatus() != EventStatus.PUBLISHED) {
             throw new ApiException("EVENT_NOT_PUBLISHED", "This event is not open for registration.", HttpStatus.BAD_REQUEST);
         }
-
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(event.getRegistrationOpenAt()) || now.isAfter(event.getRegistrationCloseAt())) {
             throw new ApiException("REGISTRATION_CLOSED", "Registration is not currently open for this event.", HttpStatus.BAD_REQUEST);
         }
+    }
 
+    private void requireEligible(String userId, Event event) {
         EligibilityResult eligibility = group5Client.checkEligibility(userId, eligibilityRuleOf(event),
                 SecurityUtils.currentBearerToken());
         if (!eligibility.isAvailable()) {
@@ -66,24 +100,6 @@ public class RegistrationService {
             String message = eligibility.message() != null
                     ? eligibility.message() : "You are not eligible to register for this event.";
             throw new ApiException("NOT_ELIGIBLE", message, HttpStatus.FORBIDDEN);
-        }
-
-        long confirmedCount = registrationRepository.countByEvent_IdAndStatus(eventId, RegistrationStatus.CONFIRMED);
-        if (confirmedCount >= event.getCapacity()) {
-            throw new ApiException("CAPACITY_REACHED", "This event has reached its registration capacity.", HttpStatus.CONFLICT);
-        }
-
-        try {
-            Registration registration = Registration.builder()
-                    .event(event)
-                    .userId(userId)
-                    .status(RegistrationStatus.CONFIRMED)
-                    .build();
-            Registration saved = registrationRepository.saveAndFlush(registration);
-            eventPublisher.publishEvent(Notifications.registrationConfirmed(saved));
-            return RegistrationResponse.from(saved);
-        } catch (DataIntegrityViolationException ex) {
-            throw new ApiException("ALREADY_REGISTERED", "You have already registered for this event.", HttpStatus.CONFLICT);
         }
     }
 

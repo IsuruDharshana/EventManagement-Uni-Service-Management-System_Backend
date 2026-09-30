@@ -10,7 +10,7 @@ VALUES
     ('a0000000-0000-0000-0000-000000000001', 'Innovation Week Workshop', 'Hands-on workshop for Computing students',
      'usr-organizer-001', 'LAB-101', FALSE,
      DATE_ADD(NOW(6), INTERVAL 7 DAY), DATE_ADD(NOW(6), INTERVAL 7 DAY) + INTERVAL 3 HOUR, 30,
-     '{"roles": ["STUDENT"], "departmentId": "dep-cs"}', DATE_SUB(NOW(6), INTERVAL 1 DAY), DATE_ADD(NOW(6), INTERVAL 6 DAY),
+     '{"roles": ["STUDENT"], "departmentId": "CS"}', DATE_SUB(NOW(6), INTERVAL 1 DAY), DATE_ADD(NOW(6), INTERVAL 6 DAY),
      'PUBLISHED', NOW(6), NOW(6)),
 
     ('a0000000-0000-0000-0000-000000000002', 'Freshers Welcome (Online)', 'Orientation for new students',
