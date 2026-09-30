@@ -86,6 +86,10 @@ integrations:
     # Deployed on Render's free tier, which sleeps when idle (~70 s to wake). Sent in the background.
     connect-timeout: ${NOTIFICATIONS_CONNECT_TIMEOUT:PT10S}
     read-timeout: ${NOTIFICATIONS_READ_TIMEOUT:PT90S}
+  # Group 6 facility-resource-service: venue check. Deployed behind the API Gateway
+  # (https://university-api-gateway.onrender.com), which sleeps when idle on Render.
   group6:
     mock: ${GROUP6_MOCK:true}
     base-url: ${GROUP6_BASE_URL:http://localhost:9002}
+    connect-timeout: ${GROUP6_CONNECT_TIMEOUT:PT10S}
+    read-timeout: ${GROUP6_READ_TIMEOUT:PT60S}

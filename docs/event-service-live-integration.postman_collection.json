@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "Event Service - LIVE integration (Group 5 + notifications)",
+    "name": "Event Service - LIVE integration (Group 5, Group 6 + notifications)",
     "description": "Runs the real flow on the deployed services: real Group 5 logins and eligibility, event-service on Render, notifications to communication-feedback-service.\n\n1. Set the collection variable demoPassword (current value only; never save it or commit it).\n2. Run the folders in order. Tokens last 60 minutes.\n3. Notifications: event-service's Render log should have no 'was not delivered' line; Kasun can confirm the REGISTRATION_CONFIRMED / REGISTRATION_CANCELLED notifications for usr-student-001.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -35,6 +35,10 @@
       "value": "https://notification-and-feedback-uni-service.onrender.com"
     },
     {
+      "key": "gatewayUrl",
+      "value": "https://university-api-gateway.onrender.com"
+    },
+    {
       "key": "demoPassword",
       "value": ""
     },
@@ -56,6 +60,18 @@
     },
     {
       "key": "registrationId",
+      "value": ""
+    },
+    {
+      "key": "venueOkEventId",
+      "value": ""
+    },
+    {
+      "key": "venueBusyEventId",
+      "value": ""
+    },
+    {
+      "key": "venueUnknownEventId",
       "value": ""
     }
   ],
@@ -133,6 +149,35 @@
               "path": [
                 "actuator",
                 "health"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wake API Gateway (route to Group 6)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayUrl}}/health/services",
+              "host": [
+                "{{gatewayUrl}}"
+              ],
+              "path": [
+                "health",
+                "services"
               ]
             },
             "description": ""
@@ -274,6 +319,260 @@
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
                   "pm.test('PUBLISHED', () => pm.expect(pm.response.json().status).to.eql('PUBLISHED'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1b. Real Group 6 venue check",
+      "item": [
+        {
+          "name": "Create draft at LAB-101",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Live Venue Test LAB-101\",\n  \"description\": \"Created by the live integration collection (Group 6 venue check)\",\n  \"online\": false,\n  \"venue\": \"LAB-101\",\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 10,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('venueOkEventId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish at LAB-101 -> 200",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/{{venueOkEventId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events",
+                "{{venueOkEventId}}",
+                "publish"
+              ]
+            },
+            "description": "Group 6: LAB-101 exists and can be booked. If every venue publishes, GROUP6_MOCK is still true on Render."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('PUBLISHED', () => pm.expect(pm.response.json().status).to.eql('PUBLISHED'));",
+                  "pm.test('not GROUP6_UNAVAILABLE (check GROUP6_BASE_URL / gateway)', () => pm.expect(pm.response.code).to.not.eql(503));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create draft at CONF-ROOM-202",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Live Venue Test CONF-ROOM-202\",\n  \"description\": \"Created by the live integration collection (Group 6 venue check)\",\n  \"online\": false,\n  \"venue\": \"CONF-ROOM-202\",\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 10,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('venueBusyEventId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish at CONF-ROOM-202 -> 409",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/{{venueBusyEventId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events",
+                "{{venueBusyEventId}}",
+                "publish"
+              ]
+            },
+            "description": "Group 6: CONF-ROOM-202 exists but is under maintenance."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('VENUE_NOT_AVAILABLE', () => pm.expect(pm.response.json().error.code).to.eql('VENUE_NOT_AVAILABLE'));",
+                  "pm.test('not GROUP6_UNAVAILABLE (check GROUP6_BASE_URL / gateway)', () => pm.expect(pm.response.code).to.not.eql(503));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create draft at XYZ-999",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Live Venue Test XYZ-999\",\n  \"description\": \"Created by the live integration collection (Group 6 venue check)\",\n  \"online\": false,\n  \"venue\": \"XYZ-999\",\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 10,\n  \"eligibilityRule\": \"{\\\"all\\\": true}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('venueUnknownEventId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish at XYZ-999 -> 400",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/{{venueUnknownEventId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events",
+                "{{venueUnknownEventId}}",
+                "publish"
+              ]
+            },
+            "description": "Group 6: XYZ-999 does not exist."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('VENUE_NOT_FOUND', () => pm.expect(pm.response.json().error.code).to.eql('VENUE_NOT_FOUND'));",
+                  "pm.test('not GROUP6_UNAVAILABLE (check GROUP6_BASE_URL / gateway)', () => pm.expect(pm.response.code).to.not.eql(503));"
                 ]
               }
             }
@@ -627,6 +926,117 @@
                 "exec": [
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
                   "pm.test('CANCELLED', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer cancels venue test event (venueOkEventId)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/{{venueOkEventId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events",
+                "{{venueOkEventId}}",
+                "cancel"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer cancels venue test event (venueBusyEventId)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/{{venueBusyEventId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events",
+                "{{venueBusyEventId}}",
+                "cancel"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizer cancels venue test event (venueUnknownEventId)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{organizerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/{{venueUnknownEventId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events",
+                "{{venueUnknownEventId}}",
+                "cancel"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
                 ]
               }
             }

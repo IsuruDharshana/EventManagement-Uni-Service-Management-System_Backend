@@ -234,7 +234,7 @@ public class EventService {
             return;
         }
 
-        VenueResult venue = group6Client.validateVenue(event.getVenue().trim());
+        VenueResult venue = group6Client.validateVenue(event.getVenue().trim(), SecurityUtils.currentBearerToken());
         switch (venue.status()) {
             case VALID -> { }
             case SERVICE_UNAVAILABLE -> throw new ApiException("GROUP6_UNAVAILABLE",
