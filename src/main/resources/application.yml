@@ -83,6 +83,9 @@ integrations:
     mock: ${NOTIFICATIONS_MOCK:true}
     base-url: ${NOTIFICATIONS_BASE_URL:http://localhost:8082}
     service-key: ${NOTIFICATIONS_SERVICE_KEY:}
+    # Deployed on Render's free tier, which sleeps when idle (~70 s to wake). Sent in the background.
+    connect-timeout: ${NOTIFICATIONS_CONNECT_TIMEOUT:PT10S}
+    read-timeout: ${NOTIFICATIONS_READ_TIMEOUT:PT90S}
   group6:
     mock: ${GROUP6_MOCK:true}
     base-url: ${GROUP6_BASE_URL:http://localhost:9002}

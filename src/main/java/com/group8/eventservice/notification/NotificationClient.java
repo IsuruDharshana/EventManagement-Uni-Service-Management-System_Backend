@@ -1,7 +1,10 @@
 package com.group8.eventservice.notification;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -25,8 +28,15 @@ public class NotificationClient {
     public NotificationClient(RestClient.Builder restClientBuilder,
                               @Value("${integrations.notifications.base-url}") String baseUrl,
                               @Value("${integrations.notifications.mock}") boolean mock,
-                              @Value("${integrations.notifications.service-key:}") String serviceKey) {
-        this.restClient = restClientBuilder.baseUrl(baseUrl).build();
+                              @Value("${integrations.notifications.service-key:}") String serviceKey,
+                              @Value("${integrations.notifications.connect-timeout:PT10S}") Duration connectTimeout,
+                              @Value("${integrations.notifications.read-timeout:PT90S}") Duration readTimeout) {
+        // Long timeouts: the notification service sleeps when idle on Render (~70 s to wake), and
+        // sending happens in the background, so waiting never slows the user's request.
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(connectTimeout);
+        factory.setReadTimeout(readTimeout);
+        this.restClient = restClientBuilder.clone().baseUrl(baseUrl).requestFactory(factory).build();
         this.mock = mock;
         this.serviceKey = serviceKey;
         if (!mock && serviceKey.isBlank()) {
