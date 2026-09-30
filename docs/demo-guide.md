@@ -28,7 +28,7 @@ All share one password, which Group 5 sent privately. Never write it in slides, 
 ## 10 minutes before the demo
 
 1. **Wake everything.** All services run on Render's free plan and sleep after 15 minutes idle; waking can take several minutes. Open each health link above until it answers. event-service is kept awake by the `Keep event-service awake` GitHub Actions workflow, but check it anyway.
-2. **Check Render settings** for event-service: `SPRING_PROFILES_ACTIVE=docker`, `GROUP5_MOCK=false`, `NOTIFICATIONS_MOCK=false` with the service key set.
+2. **Check Render settings** for event-service: `SPRING_PROFILES_ACTIVE=docker`, `GROUP5_MOCK=false`, `GROUP6_MOCK=false` with `GROUP6_BASE_URL=https://university-api-gateway.onrender.com`, `NOTIFICATIONS_MOCK=false` with the service key set.
 3. **Open Postman** with `docs/event-service-live-integration.postman_collection.json`, `demoPassword` set as the Current value, and run folder 0 once.
 4. **Log in once** as each demo user you will use. Tokens last 60 minutes, so log in again if the demo runs longer.
 
@@ -45,7 +45,7 @@ Use the live Postman collection, or Swagger UI with **Authorize** and a token fr
    - `POST /api/v1/events` with `"eligibilityRule": "{\"roles\": [\"STUDENT\"]}"`.
    - Show it is `DRAFT` and that the organizer is `usr-organizer-001`.
 3. **Drafts are private.** As `STU001`, `GET /api/v1/events` does not list it; `GET /api/v1/events/{id}` returns 403 `NOT_VISIBLE`.
-4. **Publish (`EVO001`).** `PATCH /api/v1/events/{id}/publish` → `PUBLISHED`. For a physical venue such as `LAB-101`, event-service checks it with Group 6 first.
+4. **Publish (`EVO001`).** `PATCH /api/v1/events/{id}/publish` → `PUBLISHED`. For a physical venue, event-service checks it with Group 6 first: `LAB-101` or `AUD-MAIN` publish, `CONF-ROOM-202` (under maintenance) → 409 `VENUE_NOT_AVAILABLE`, `XYZ-999` → 400 `VENUE_NOT_FOUND`.
 5. **Register (`STU001`).**
    - `POST /api/v1/events/{id}/registrations` → 201 `CONFIRMED`.
    - Group 5 confirmed the STUDENT role live.
@@ -67,8 +67,8 @@ Use the live Postman collection, or Swagger UI with **Authorize** and a token fr
     - Organizers can complete a started event early with `PATCH /api/v1/events/{id}/complete`.
     - Feedback is only accepted for completed events.
 11. **Quality (1 min).**
-    - GitHub Actions runs 155 automated tests on every PR, including an API contract check.
-    - The Postman collections have 61 and 15 checked requests.
+    - GitHub Actions runs 158 automated tests on every PR, including an API contract check.
+    - The Postman collections have 61 and 25 checked requests.
     - Evidence reports are attached to Jira USMG8-225.
 
 ## If something goes wrong
@@ -78,7 +78,7 @@ Use the live Postman collection, or Swagger UI with **Authorize** and a token fr
 | A request hangs for a minute or more | A service was asleep | Wait; it answers once awake. Next time wake everything first |
 | 401 on every request | Token expired (60 min) or login failed | Log in again. If it persists, open the Group 5 health link: event-service needs Group 5's keys to verify tokens |
 | 503 `GROUP5_UNAVAILABLE` on registration | Group 5 is down or slow, or the rule uses a department (Group 5's Directory Service is not live yet) | Show it as the designed safe failure: nothing was saved. Use roles-only rules for the demo |
-| 503 `GROUP6_UNAVAILABLE` on publish | Group 6 is down | Show the safe failure (event stays DRAFT), then publish an online event instead |
+| 503 `GROUP6_UNAVAILABLE` on publish | Group 6 or the API Gateway is down or asleep | Show the safe failure (event stays DRAFT), then publish an online event instead |
 | Registration works but no notification arrives | Notification service asleep or key wrong | The registration still succeeded by design. Check the event-service Render log for `was not delivered` |
 | event-service itself is down | Render problem | Run it locally: `docker compose up -d mysql`, start the app with `SPRING_PROFILES_ACTIVE=dev,seed`, and use `docs/event-service.postman_collection.json` (dev tokens, no Group 5 needed) |
 

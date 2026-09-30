@@ -80,7 +80,7 @@ Everything is set through environment variables; defaults suit local development
 | `GROUP5_CONNECT_TIMEOUT` / `GROUP5_READ_TIMEOUT` | `PT10S` / `PT60S` | Group 5 sleeps when idle on Render and its first answer can take about a minute |
 | `JWT_JWKS_URI` | `{GROUP5_BASE_URL}/.well-known/jwks.json` | Group 5 public keys used to verify tokens |
 | `JWT_ISSUER` / `JWT_AUDIENCE` | `university-identity-service` / `university-services-platform` | Required `iss` / `aud` of every token |
-| `GROUP6_BASE_URL` | `http://localhost:9002` | Group 6 facility-resource-service |
+| `GROUP6_BASE_URL` | `http://localhost:9002` | Group 6 facility-resource-service; deployed: `https://university-api-gateway.onrender.com` |
 | `GROUP6_MOCK` | `true` | `true` = every venue is valid, Group 6 is not called |
 | `NOTIFICATIONS_BASE_URL` | `http://localhost:8082` | communication-feedback-service |
 | `NOTIFICATIONS_MOCK` | `true` | `true` = notifications are only logged |
@@ -105,12 +105,12 @@ Every rule is enforced in the service layer, whatever the frontend shows.
 
 ## Integrations
 
-Each integration has a mock switch (default on), so the service runs on its own. Group 5 calls use a 10 s connect / 60 s read timeout and notifications 10 s / 90 s (both services sleep when idle on Render); Group 6 3 s / 5 s. An outage or timeout never counts as success.
+Each integration has a mock switch (default on), so the service runs on its own. Group 5 and Group 6 calls use a 10 s connect / 60 s read timeout and notifications 10 s / 90 s (Render's free plan sleeps when idle; Group 6 is reached through the API Gateway). An outage or timeout never counts as success.
 
 | Service | When | Call | If it is down |
 |---|---|---|---|
 | **Group 5** Identity Service (`https://university-identity-service.onrender.com`) | Every request (token check, keys cached); registration (eligibility) | `GET /.well-known/jwks.json`; one call per registration with the user's token: `GET /api/v1/validation/users/{userId}` (roles-only rules) or `.../eligibility?relationship=AFFILIATION&department_id=CS` (department / faculty rules) | 401 if keys cannot be fetched; registration returns 503 `GROUP5_UNAVAILABLE`, nothing is saved |
-| **Group 6** facility-resource-service | Publishing a physical event | `GET /api/resources/code/{code}/validate` | 503 `GROUP6_UNAVAILABLE`, the event stays DRAFT |
+| **Group 6** facility-resource-service | Publishing a physical event | `GET /api/resources/code/{code}/validate` (caller's token forwarded) | 503 `GROUP6_UNAVAILABLE`, the event stays DRAFT |
 | **communication-feedback-service** (`https://notification-and-feedback-uni-service.onrender.com`) | After a registration or event change is saved | `POST /api/notifications/trigger` with `X-Service-Key` ([contract](docs/notification-api-contract.yaml)) | Logged only; the user's action is never undone or slowed down |
 
 **Eligibility rules** are stored per event as JSON: `{"all": true}` (anyone; Group 5 is not asked) or any of `roles`, `departmentId`, `facultyId`, e.g. `{"roles": ["STUDENT"], "departmentId": "CS"}`, evaluated by Group 5. Department and faculty values are Group 5 codes (`CS`, `FSC`). Department checks need Group 5's Directory Service; until it is deployed they return 503, so use roles-only rules for demos. See [data dictionary](docs/data-dictionary.md).
@@ -189,7 +189,7 @@ SPRING_PROFILES_ACTIVE=docker
 DB_URL=jdbc:mysql://<aiven-host>:<port>/event_service_db?sslMode=REQUIRED
 DB_USERNAME=... DB_PASSWORD=...
 GROUP5_BASE_URL=https://university-identity-service.onrender.com   GROUP5_MOCK=false
-GROUP6_BASE_URL=<Group 6 URL>             GROUP6_MOCK=false
+GROUP6_BASE_URL=https://university-api-gateway.onrender.com   GROUP6_MOCK=false
 NOTIFICATIONS_BASE_URL=https://notification-and-feedback-uni-service.onrender.com   NOTIFICATIONS_MOCK=false
 NOTIFICATIONS_SERVICE_KEY=<shared key>
 CORS_ALLOWED_ORIGINS=<frontend URL, or empty behind the API Gateway>

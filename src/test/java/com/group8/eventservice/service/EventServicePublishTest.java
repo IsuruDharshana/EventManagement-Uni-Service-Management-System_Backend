@@ -44,7 +44,7 @@ class EventServicePublishTest {
         eventId = UUID.randomUUID();
 
         var admin = new UsernamePasswordAuthenticationToken(
-                "usr-admin-001", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+                "usr-admin-001", "caller-token", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
         SecurityContextHolder.getContext().setAuthentication(admin);
 
         when(eventRepository.saveAndFlush(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -72,7 +72,7 @@ class EventServicePublishTest {
     @Test
     void publishesPhysicalEventWhenVenueIsValid() {
         draft(false, "LAB-101");
-        when(group6Client.validateVenue("LAB-101")).thenReturn(VenueResult.valid());
+        when(group6Client.validateVenue("LAB-101", "caller-token")).thenReturn(VenueResult.valid());
 
         assertThat(service.publishEvent(eventId).status()).isEqualTo(EventStatus.PUBLISHED);
     }
@@ -80,7 +80,7 @@ class EventServicePublishTest {
     @Test
     void rejectsPublishWhenVenueIsNotAvailableAndShowsGroup6Message() {
         Event event = draft(false, "LAB-101");
-        when(group6Client.validateVenue("LAB-101"))
+        when(group6Client.validateVenue("LAB-101", "caller-token"))
                 .thenReturn(VenueResult.notAvailable("Resource is currently marked unavailable"));
 
         assertThatThrownBy(() -> service.publishEvent(eventId))
@@ -95,7 +95,7 @@ class EventServicePublishTest {
     @Test
     void rejectsPublishWhenVenueDoesNotExistAndShowsGroup6Message() {
         Event event = draft(false, "LAB-999");
-        when(group6Client.validateVenue("LAB-999"))
+        when(group6Client.validateVenue("LAB-999", "caller-token"))
                 .thenReturn(VenueResult.notFound("Resource with ID 999 does not exist"));
 
         assertThatThrownBy(() -> service.publishEvent(eventId))
@@ -110,7 +110,7 @@ class EventServicePublishTest {
     @Test
     void rejectsPublishWhenGroup6IsUnavailableAndLeavesEventInDraft() {
         Event event = draft(false, "LAB-101");
-        when(group6Client.validateVenue("LAB-101")).thenReturn(VenueResult.serviceUnavailable());
+        when(group6Client.validateVenue("LAB-101", "caller-token")).thenReturn(VenueResult.serviceUnavailable());
 
         assertThatThrownBy(() -> service.publishEvent(eventId))
                 .isInstanceOf(ApiException.class)
@@ -125,6 +125,6 @@ class EventServicePublishTest {
         draft(true, null);
 
         assertThat(service.publishEvent(eventId).status()).isEqualTo(EventStatus.PUBLISHED);
-        verify(group6Client, never()).validateVenue(anyString());
+        verify(group6Client, never()).validateVenue(anyString(), any());
     }
 }
