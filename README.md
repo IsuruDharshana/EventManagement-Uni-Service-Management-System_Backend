@@ -85,6 +85,7 @@ Everything is set through environment variables; defaults suit local development
 | `NOTIFICATIONS_BASE_URL` | `http://localhost:8082` | communication-feedback-service |
 | `NOTIFICATIONS_MOCK` | `true` | `true` = notifications are only logged |
 | `NOTIFICATIONS_SERVICE_KEY` | empty | Shared `X-Service-Key` for the notification API. Keep it out of Git |
+| `NOTIFICATIONS_CONNECT_TIMEOUT` / `NOTIFICATIONS_READ_TIMEOUT` | `PT10S` / `PT90S` | The notification service sleeps when idle; sending is in the background, so waiting never slows users |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:3000` | Frontend origins allowed to call the API from a browser. Empty if the API Gateway handles CORS |
 | `EVENTS_AUTO_COMPLETE_ENABLED` / `EVENTS_AUTO_COMPLETE_INTERVAL` | `true` / `PT5M` | Job that marks published events COMPLETED after they end |
 
@@ -104,13 +105,13 @@ Every rule is enforced in the service layer, whatever the frontend shows.
 
 ## Integrations
 
-Each integration has a mock switch (default on), so the service runs on its own. Group 5 calls use a 10 s connect / 60 s read timeout (it sleeps when idle); the others 3 s / 5 s. An outage or timeout never counts as success.
+Each integration has a mock switch (default on), so the service runs on its own. Group 5 calls use a 10 s connect / 60 s read timeout and notifications 10 s / 90 s (both services sleep when idle on Render); Group 6 3 s / 5 s. An outage or timeout never counts as success.
 
 | Service | When | Call | If it is down |
 |---|---|---|---|
 | **Group 5** Identity Service (`https://university-identity-service.onrender.com`) | Every request (token check, keys cached); registration (eligibility) | `GET /.well-known/jwks.json`; one call per registration with the user's token: `GET /api/v1/validation/users/{userId}` (roles-only rules) or `.../eligibility?relationship=AFFILIATION&department_id=CS` (department / faculty rules) | 401 if keys cannot be fetched; registration returns 503 `GROUP5_UNAVAILABLE`, nothing is saved |
 | **Group 6** facility-resource-service | Publishing a physical event | `GET /api/resources/code/{code}/validate` | 503 `GROUP6_UNAVAILABLE`, the event stays DRAFT |
-| **communication-feedback-service** | After a registration or event change is saved | `POST /api/notifications/trigger` with `X-Service-Key` ([contract](docs/notification-api-contract.yaml)) | Logged only; the user's action is never undone or slowed down |
+| **communication-feedback-service** (`https://notification-and-feedback-uni-service.onrender.com`) | After a registration or event change is saved | `POST /api/notifications/trigger` with `X-Service-Key` ([contract](docs/notification-api-contract.yaml)) | Logged only; the user's action is never undone or slowed down |
 
 **Eligibility rules** are stored per event as JSON: `{"all": true}` (anyone; Group 5 is not asked) or any of `roles`, `departmentId`, `facultyId`, e.g. `{"roles": ["STUDENT"], "departmentId": "CS"}`, evaluated by Group 5. Department and faculty values are Group 5 codes (`CS`, `FSC`). Department checks need Group 5's Directory Service; until it is deployed they return 503, so use roles-only rules for demos. See [data dictionary](docs/data-dictionary.md).
 
@@ -189,7 +190,7 @@ DB_URL=jdbc:mysql://<aiven-host>:<port>/event_service_db?sslMode=REQUIRED
 DB_USERNAME=... DB_PASSWORD=...
 GROUP5_BASE_URL=https://university-identity-service.onrender.com   GROUP5_MOCK=false
 GROUP6_BASE_URL=<Group 6 URL>             GROUP6_MOCK=false
-NOTIFICATIONS_BASE_URL=<comms URL>        NOTIFICATIONS_MOCK=false
+NOTIFICATIONS_BASE_URL=https://notification-and-feedback-uni-service.onrender.com   NOTIFICATIONS_MOCK=false
 NOTIFICATIONS_SERVICE_KEY=<shared key>
 CORS_ALLOWED_ORIGINS=<frontend URL, or empty behind the API Gateway>
 ```

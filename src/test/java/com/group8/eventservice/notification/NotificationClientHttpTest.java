@@ -5,18 +5,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import com.sun.net.httpserver.HttpServer;
 
 /** NotificationClient against a fake communication-feedback-service. */
 class NotificationClientHttpTest {
+
+    private static final Duration TIMEOUT = Duration.ofMillis(500);
 
     private static final NotificationRequest CONFIRMED = new NotificationRequest("usr-student-001",
             "REGISTRATION_CONFIRMED", "You are registered for Innovation Week.", "REGISTRATION",
@@ -54,11 +56,8 @@ class NotificationClientHttpTest {
         });
         server.start();
 
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(500);
-        factory.setReadTimeout(300);
-        return new NotificationClient(RestClient.builder().requestFactory(factory),
-                "http://localhost:" + server.getAddress().getPort(), false, "test-service-key");
+        return new NotificationClient(RestClient.builder(), "http://localhost:" + server.getAddress().getPort(),
+                false, "test-service-key", Duration.ofMillis(500), Duration.ofMillis(300));
     }
 
     @Test
@@ -90,13 +89,13 @@ class NotificationClientHttpTest {
 
     @Test
     void unreachableServiceIsReportedNotThrown() {
-        NotificationClient client = new NotificationClient(RestClient.builder(), "http://localhost:1", false, "k");
+        NotificationClient client = new NotificationClient(RestClient.builder(), "http://localhost:1", false, "k", TIMEOUT, TIMEOUT);
         assertThat(client.send(CONFIRMED)).isFalse();
     }
 
     @Test
     void mockModeNeverCallsOut() {
-        NotificationClient client = new NotificationClient(RestClient.builder(), "http://localhost:1", true, "");
+        NotificationClient client = new NotificationClient(RestClient.builder(), "http://localhost:1", true, "", TIMEOUT, TIMEOUT);
         assertThat(client.send(CONFIRMED)).isTrue();
     }
 }
