@@ -43,9 +43,9 @@ public class CreateEventRequest {
     @Positive
     private Integer capacity;
 
-    @Schema(example = "{\"roles\": [\"STUDENT\"], \"departmentId\": \"dep-cs\"}", requiredMode = Schema.RequiredMode.REQUIRED,
+    @Schema(example = "{\"roles\": [\"STUDENT\"], \"departmentId\": \"CS\"}", requiredMode = Schema.RequiredMode.REQUIRED,
             description = "JSON rule saying who may register. {\"all\": true} means everyone. Otherwise any of: "
-                    + "roles (Group 5 role names, user needs one), departmentId / facultyId (Group 5 directory ids the user must belong to)")
+                    + "roles (Group 5 role names, user needs one), departmentId / facultyId (Group 5 department / faculty codes such as CS or FSC the user must belong to)")
     @NotBlank
     private String eligibilityRule;
 

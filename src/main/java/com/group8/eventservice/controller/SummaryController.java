@@ -28,7 +28,7 @@ public class SummaryController {
 
     private final SummaryService summaryService;
 
-    @GetMapping("/api/events/{eventId}/registrations")
+    @GetMapping({"/api/events/{eventId}/registrations", "/api/v1/events/{eventId}/registrations"})
     @PreAuthorize("hasAnyRole('EVENT_ORGANIZER', 'ACADEMIC_STAFF', 'ADMIN', 'ADMINISTRATIVE_STAFF')")
     @Operation(summary = "Registration and capacity summary for one event",
             description = "Roles: the owning EVENT_ORGANIZER or ACADEMIC_STAFF, or ADMIN / ADMINISTRATIVE_STAFF.")
@@ -45,7 +45,7 @@ public class SummaryController {
         return summaryService.summaryForEvent(eventId);
     }
 
-    @GetMapping("/api/events/summary")
+    @GetMapping({"/api/events/summary", "/api/v1/events/summary"})
     @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRATIVE_STAFF')")
     @Operation(summary = "Overall event and registration totals", description = "Roles: ADMIN, ADMINISTRATIVE_STAFF.")
     @ApiResponse(responseCode = "200", description = "Totals by event status and registration status")

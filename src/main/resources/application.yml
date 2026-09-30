@@ -75,6 +75,9 @@ integrations:
   group5:
     mock: ${GROUP5_MOCK:true}
     base-url: ${GROUP5_BASE_URL:http://localhost:8001}
+    # Group 5 sleeps when idle on Render; its first answer can take ~1 minute.
+    connect-timeout: ${GROUP5_CONNECT_TIMEOUT:PT10S}
+    read-timeout: ${GROUP5_READ_TIMEOUT:PT60S}
   # communication-feedback-service (Group 8) notification trigger API, docs/notification-api-contract.yaml
   notifications:
     mock: ${NOTIFICATIONS_MOCK:true}

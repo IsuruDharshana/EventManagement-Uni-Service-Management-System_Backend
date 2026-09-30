@@ -86,10 +86,12 @@ Constraints and indexes: unique `(event_id, user_id)` stops a user registering t
 |---|---|
 | `{"all": true}` | Anyone signed in. Group 5 is not asked |
 | `{"roles": ["STUDENT"]}` | User must hold one of the roles |
-| `{"roles": ["STUDENT"], "departmentId": "dep-cs"}` | ...and belong to that department |
-| `{"facultyId": "fac-sci"}` | User must belong to that faculty (any role) |
+| `{"roles": ["STUDENT"], "departmentId": "CS"}` | ...and belong to that department |
+| `{"facultyId": "FSC"}` | User must belong to that faculty (any role) |
 
-Allowed fields: `all`, `roles`, `departmentId`, `facultyId`. Department and faculty values are Group 5 Directory ids, not display names. Any other field is rejected with `INVALID_ELIGIBILITY_RULE`. Group 5 evaluates the rule through `GET /api/v1/validation/users/{userId}/eligibility`; with several roles it is asked once per role until one passes.
+Allowed fields: `all`, `roles`, `departmentId`, `facultyId`. Department and faculty values are Group 5 codes (e.g. `CS`, `FSC`), not display names or directory ids. Any other field is rejected with `INVALID_ELIGIBILITY_RULE`.
+
+Group 5 is asked once per registration: roles-only rules use `GET /api/v1/validation/users/{userId}` (active account + role check), rules with a department or faculty use `GET /api/v1/validation/users/{userId}/eligibility?relationship=AFFILIATION&department_id=CS` (plus the role check). Department and faculty checks need Group 5's Directory Service; while it is not deployed they return 503 and registration is refused, so use roles-only rules until then.
 
 ## Roles (Group 5 names)
 

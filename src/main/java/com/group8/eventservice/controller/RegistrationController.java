@@ -31,7 +31,7 @@ public class RegistrationController {
 
     private final RegistrationService registrationService;
 
-    @PostMapping("/api/events/{eventId}/registrations")
+    @PostMapping({"/api/events/{eventId}/registrations", "/api/v1/events/{eventId}/registrations"})
     @Operation(summary = "Register the caller for an event",
             description = "Any signed-in user. Checks, in order: event is PUBLISHED, registration window is open, "
                     + "Group 5 eligibility (skipped for {\"all\": true} events), capacity.")
@@ -53,7 +53,7 @@ public class RegistrationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(registrationService.register(eventId));
     }
 
-    @PatchMapping("/api/registrations/{id}/cancel")
+    @PatchMapping({"/api/registrations/{id}/cancel", "/api/v1/registrations/{id}/cancel"})
     @Operation(summary = "Cancel the caller's own registration", description = "Not allowed once the event has started.")
     @ApiResponse(responseCode = "200", description = "Registration is now CANCELLED")
     @ApiResponse(responseCode = "400", description = "INVALID_STATE (already cancelled), CANCELLATION_CLOSED (event started) or INVALID_PARAMETER (id is not a UUID)",
@@ -68,7 +68,7 @@ public class RegistrationController {
         return registrationService.cancelRegistration(id);
     }
 
-    @GetMapping("/api/registrations/mine")
+    @GetMapping({"/api/registrations/mine", "/api/v1/registrations/mine"})
     @Operation(summary = "List the caller's registrations, including cancelled ones")
     @ApiResponse(responseCode = "200", description = "Registration history")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED",

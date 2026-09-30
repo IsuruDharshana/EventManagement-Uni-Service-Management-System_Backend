@@ -12,9 +12,10 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Who may register for an event, stored as JSON in events.eligibility_rule. Either
  * <pre>{"all": true}</pre> (anyone, Group 5 is not asked) or any combination of
- * <pre>{"roles": ["STUDENT"], "departmentId": "dep-cs", "facultyId": "fac-sci"}</pre>
+ * <pre>{"roles": ["STUDENT"], "departmentId": "CS", "facultyId": "FSC"}</pre>
  * which Group 5 evaluates: the user must hold one of the roles and, if a department or faculty
- * is given, be affiliated with it. Ids are Group 5 Directory ids, not display names.
+ * is given, be affiliated with it. Values are Group 5 department / faculty codes (e.g. CS, FSC),
+ * not display names or environment-specific directory ids.
  */
 public record EligibilityRule(boolean all, List<String> roles, String departmentId, String facultyId) {
 
@@ -99,7 +100,7 @@ public record EligibilityRule(boolean all, List<String> roles, String department
         String id = value.isString() ? value.stringValue().trim() : "";
         if (!DIRECTORY_ID.matcher(id).matches()) {
             throw new IllegalArgumentException("eligibilityRule." + name
-                    + " must be a Group 5 directory id such as \"dep-cs\" (letters, digits, '-' or '_').");
+                    + " must be a Group 5 code such as \"CS\" (letters, digits, '-' or '_').");
         }
         return id;
     }

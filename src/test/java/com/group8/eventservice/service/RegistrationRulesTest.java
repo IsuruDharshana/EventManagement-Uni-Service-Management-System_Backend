@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -45,7 +46,8 @@ class RegistrationRulesTest {
         registrationRepository = mock(RegistrationRepository.class);
         group5Client = mock(Group5Client.class);
         eventPublisher = mock(ApplicationEventPublisher.class);
-        service = new RegistrationService(eventRepository, registrationRepository, group5Client, eventPublisher);
+        service = new RegistrationService(eventRepository, registrationRepository, group5Client, eventPublisher,
+                TransactionOperations.withoutTransaction());
         userId = "usr-student-001";
         eventId = UUID.randomUUID();
 
@@ -59,6 +61,12 @@ class RegistrationRulesTest {
             r.setId(UUID.randomUUID());
             return r;
         });
+    }
+
+    /** register() reads the event twice: once without a lock (checks + Group 5), once locked (capacity + insert). */
+    private void stubEvent(Event event) {
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(event));
     }
 
     @AfterEach
@@ -77,7 +85,7 @@ class RegistrationRulesTest {
                 .registrationCloseAt(closesAt)
                 .eligibilityRule("{\"all\": true}")
                 .build();
-        when(eventRepository.findByIdForUpdate(eventId)).thenReturn(Optional.of(event));
+        stubEvent(event);
     }
 
     private static String codeOf(Throwable t) {

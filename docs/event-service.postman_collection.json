@@ -613,7 +613,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"CS Students Only\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"roles\\\": [\\\"STUDENT\\\"], \\\"departmentId\\\": \\\"dep-cs\\\"}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
+              "raw": "{\n  \"title\": \"CS Students Only\",\n  \"description\": \"Created from Postman\",\n  \"venue\": \"LAB-101\",\n  \"online\": false,\n  \"scheduleStart\": \"{{scheduleStart}}\",\n  \"scheduleEnd\": \"{{scheduleEnd}}\",\n  \"capacity\": 50,\n  \"eligibilityRule\": \"{\\\"roles\\\": [\\\"STUDENT\\\"], \\\"departmentId\\\": \\\"CS\\\"}\",\n  \"registrationOpenAt\": \"{{registrationOpenAt}}\",\n  \"registrationCloseAt\": \"{{registrationCloseAt}}\"\n}"
             }
           },
           "event": [
@@ -623,7 +623,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status is 201', () => pm.response.to.have.status(201));",
-                  "pm.test('rule stored as sent', () => pm.expect(JSON.parse(pm.response.json().eligibilityRule).departmentId).to.eql('dep-cs'));"
+                  "pm.test('rule stored as sent', () => pm.expect(JSON.parse(pm.response.json().eligibilityRule).departmentId).to.eql('CS'));"
                 ]
               }
             }
@@ -2349,6 +2349,48 @@
                 "exec": [
                   "pm.test('Status is 200', () => pm.response.to.have.status(200));",
                   "pm.test('only my events', () => pm.response.json().forEach(e => pm.expect(e.organizerId).to.eql('usr-organizer-001')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Same list via the API Gateway path /api/v1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events?status=PUBLISHED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PUBLISHED"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('published events', () => pm.response.json().forEach(e => pm.expect(e.status).to.eql('PUBLISHED')));"
                 ]
               }
             }

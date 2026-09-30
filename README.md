@@ -77,6 +77,7 @@ Everything is set through environment variables; defaults suit local development
 | `DB_USERNAME` / `DB_PASSWORD` | `group8` / `group8` | Database credentials |
 | `GROUP5_BASE_URL` | `http://localhost:8001` (`http://identity-service:8001` in `docker`) | Group 5 Identity Service |
 | `GROUP5_MOCK` | `true` | `true` = every user is eligible, Group 5 is not called |
+| `GROUP5_CONNECT_TIMEOUT` / `GROUP5_READ_TIMEOUT` | `PT10S` / `PT60S` | Group 5 sleeps when idle on Render and its first answer can take about a minute |
 | `JWT_JWKS_URI` | `{GROUP5_BASE_URL}/.well-known/jwks.json` | Group 5 public keys used to verify tokens |
 | `JWT_ISSUER` / `JWT_AUDIENCE` | `university-identity-service` / `university-services-platform` | Required `iss` / `aud` of every token |
 | `GROUP6_BASE_URL` | `http://localhost:9002` | Group 6 facility-resource-service |
@@ -103,15 +104,15 @@ Every rule is enforced in the service layer, whatever the frontend shows.
 
 ## Integrations
 
-Each integration has a mock switch (default on), so the service runs on its own. Every call has a 3 s connect / 5 s read timeout, and an outage never counts as success.
+Each integration has a mock switch (default on), so the service runs on its own. Group 5 calls use a 10 s connect / 60 s read timeout (it sleeps when idle); the others 3 s / 5 s. An outage or timeout never counts as success.
 
 | Service | When | Call | If it is down |
 |---|---|---|---|
-| **Group 5** Identity Service | Every request (token check); registration (eligibility) | `GET /.well-known/jwks.json`; `GET /api/v1/validation/users/{userId}/eligibility` with the user's token | 401 if keys cannot be fetched; registration returns 503 `GROUP5_UNAVAILABLE`, nothing is saved |
+| **Group 5** Identity Service (`https://university-identity-service.onrender.com`) | Every request (token check, keys cached); registration (eligibility) | `GET /.well-known/jwks.json`; one call per registration with the user's token: `GET /api/v1/validation/users/{userId}` (roles-only rules) or `.../eligibility?relationship=AFFILIATION&department_id=CS` (department / faculty rules) | 401 if keys cannot be fetched; registration returns 503 `GROUP5_UNAVAILABLE`, nothing is saved |
 | **Group 6** facility-resource-service | Publishing a physical event | `GET /api/resources/code/{code}/validate` | 503 `GROUP6_UNAVAILABLE`, the event stays DRAFT |
 | **communication-feedback-service** | After a registration or event change is saved | `POST /api/notifications/trigger` with `X-Service-Key` ([contract](docs/notification-api-contract.yaml)) | Logged only; the user's action is never undone or slowed down |
 
-**Eligibility rules** are stored per event as JSON: `{"all": true}` (anyone; Group 5 is not asked) or any of `roles`, `departmentId`, `facultyId`, e.g. `{"roles": ["STUDENT"], "departmentId": "dep-cs"}`, evaluated by Group 5. See [data dictionary](docs/data-dictionary.md).
+**Eligibility rules** are stored per event as JSON: `{"all": true}` (anyone; Group 5 is not asked) or any of `roles`, `departmentId`, `facultyId`, e.g. `{"roles": ["STUDENT"], "departmentId": "CS"}`, evaluated by Group 5. Department and faculty values are Group 5 codes (`CS`, `FSC`). Department checks need Group 5's Directory Service; until it is deployed they return 503, so use roles-only rules for demos. See [data dictionary](docs/data-dictionary.md).
 
 **Notifications sent:** REGISTRATION_CONFIRMED and REGISTRATION_CANCELLED to the student; EVENT_CANCELLED to every confirmed registrant; EVENT_UPDATED when a published event's date, time or venue changes. Sent in the background after the database commit, each with an idempotency key.
 
@@ -133,6 +134,8 @@ Each integration has a mock switch (default on), so the service runs on its own.
 | GET | `/api/registrations/mine` | Own registrations |
 | GET | `/api/events/{eventId}/registrations` | Registration and capacity summary for one event |
 | GET | `/api/events/summary` | Totals across all events |
+
+Every endpoint is also served under `/api/v1/...` (e.g. `/api/v1/events`), the form the API Gateway uses; `/api/...` keeps working.
 
 Every error has the shape `{ "success": false, "error": { "code", "message" } }`. The full list of error codes is in Swagger.
 
@@ -166,7 +169,7 @@ docker compose up -d mysql
 
 Runs unit tests (business rules, security, Group 5/6 and notification clients against fake HTTP servers), integration tests against the real MySQL schema, and the API contract check. CI (GitHub Actions) runs the same on every PR and push to `main`, with its own MySQL.
 
-**Postman:** import [`docs/event-service.postman_collection.json`](docs/event-service.postman_collection.json). It has 60 requests covering every endpoint and error code, with assertions. Start the app with `SPRING_PROFILES_ACTIVE=dev,seed`, then run the folders in order (folder 0 mints test tokens). Headless:
+**Postman:** import [`docs/event-service.postman_collection.json`](docs/event-service.postman_collection.json). It has 61 requests covering every endpoint and error code, with assertions. Start the app with `SPRING_PROFILES_ACTIVE=dev,seed`, then run the folders in order (folder 0 mints test tokens). Headless:
 
 ```bash
 npx newman run docs/event-service.postman_collection.json --env-var baseUrl=http://localhost:8081
@@ -184,7 +187,7 @@ Render environment for the final setup:
 SPRING_PROFILES_ACTIVE=docker
 DB_URL=jdbc:mysql://<aiven-host>:<port>/event_service_db?sslMode=REQUIRED
 DB_USERNAME=... DB_PASSWORD=...
-GROUP5_BASE_URL=<Group 5 URL>             GROUP5_MOCK=false
+GROUP5_BASE_URL=https://university-identity-service.onrender.com   GROUP5_MOCK=false
 GROUP6_BASE_URL=<Group 6 URL>             GROUP6_MOCK=false
 NOTIFICATIONS_BASE_URL=<comms URL>        NOTIFICATIONS_MOCK=false
 NOTIFICATIONS_SERVICE_KEY=<shared key>

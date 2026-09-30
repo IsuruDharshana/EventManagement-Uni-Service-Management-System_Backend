@@ -257,7 +257,7 @@ class EventServiceRulesTest {
         request.setScheduleStart(start);
         request.setScheduleEnd(start.plusHours(2));
         request.setCapacity(10);
-        request.setEligibilityRule("{\"roles\": [\"STUDENT\"], \"facultyId\": \"fac-sci\"}");
+        request.setEligibilityRule("{\"roles\": [\"STUDENT\"], \"facultyId\": \"FSC\"}");
         request.setRegistrationOpenAt(LocalDateTime.now());
         request.setRegistrationCloseAt(start);
 
