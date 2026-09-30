@@ -195,6 +195,8 @@ NOTIFICATIONS_SERVICE_KEY=<shared key>
 CORS_ALLOWED_ORIGINS=<frontend URL, or empty behind the API Gateway>
 ```
 
+**Keeping it awake.** Render's free plan sleeps after 15 minutes without traffic, and waking takes minutes. The `Keep event-service awake` GitHub Actions workflow (`.github/workflows/keep-awake.yml`) calls `/actuator/health` every 10 minutes. Disable it in the Actions tab to let the service sleep. For demos, follow [docs/demo-guide.md](docs/demo-guide.md).
+
 Until a dependency is deployed, leave its `*_MOCK` unset (true). While Group 5 is unreachable, every request is 401 because tokens cannot be verified.
 
 ## Troubleshooting
